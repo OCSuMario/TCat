@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.macmario.services.web</groupId>
+    <artifactId>TCat</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <exec.mainClass>com.macmario.services.web.tcat.TCat</exec.mainClass>
+    	<tomcat.version>10.1.10</tomcat.version>
+    </properties>
+
+    <dependencies>
+            <dependency>
+                     <groupId>org.apache.tomcat.embed</groupId>
+                     <artifactId>tomcat-embed-websocket</artifactId>
+                     <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                     <groupId>org.apache.tomcat.embed</groupId>
+                     <artifactId>tomcat-embed-core</artifactId>
+                     <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-jasper</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-jasper</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-jasper-el</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat</groupId>
+                <artifactId>tomcat-jsp-api</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+
+	   <!-- https://mvnrepository.com/artifact/jakarta.annotation/jakarta.annotation-api -->
+	   <dependency>
+    		<groupId>jakarta.annotation</groupId>
+    		<artifactId>jakarta.annotation-api</artifactId>
+    		<version>2.1.1</version>
+	   </dependency>
+		  <!-- https://mvnrepository.com/artifact/jakarta.platform/jakarta.jakartaee-web-api -->
+	  <dependency>
+    		<groupId>jakarta.platform</groupId>
+    		<artifactId>jakarta.jakartaee-web-api</artifactId>
+    		<version>10.0.0</version>
+    		<scope>provided</scope>
+	  </dependency>
+          <dependency>
+    		<groupId>com.macmario.core</groupId>
+    		<artifactId>macmario-core-io</artifactId>
+    		<version>1.0</version>
+    		<scope>system</scope>
+    		<systemPath>${project.basedir}/src/main/resources/OC.jar</systemPath>
+	  </dependency>
+
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-dependency-plugin</artifactId>
+              <version>3.5.0</version>
+              <executions>
+                <execution>
+                  <id>copy-dependencies</id>
+                  <phase>package</phase>
+                  <goals>
+                    <goal>copy-dependencies</goal>
+                  </goals>
+                  <configuration>
+                    <outputDirectory>${project.build.directory}/../lib</outputDirectory>
+                    <overWriteReleases>false</overWriteReleases>
+                    <overWriteSnapshots>false</overWriteSnapshots>
+                    <overWriteIfNewer>true</overWriteIfNewer>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
