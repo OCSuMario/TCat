@@ -1,0 +1,102 @@
+<xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=700" />
+    <title>Knowledge Solution Finder </title>
+    <link rel="stylesheet" type="text/css" media="screen,print" href="css/Standard.css" />
+    <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" /> 
+    
+    <script type="text/javascript" id="solutionscript"     src="js/Solution.js"></script>
+    <script type="text/javascript" id="js/My_Knowledge.js" src="js/My_Knowledge.js"></script>
+    <script type="text/javascript" id="js/Creater.js"      src="js/Creater.js"></script>
+    <script type="text/javascript" id="js/Manufactor.js"   src="js/Manufactor.js"></script>
+    <script type="text/javascript" id="js/Admin.js"	   src="js/Admin.js"></script>
+    <script type="text/javascript" id="js/ksm-adm.js"      src="js/ksm-admin.js"></script>
+    <script type="text/javascript" id="mainscript"         src="js/ksm.js"></script>
+  </head>
+  <body onload="onPageLoad();" onunload="onPageUnload();">
+	<table style="width:100%" >
+	   <tr>
+	     <td style="width:20%; align:left;" >
+	        <div ><img src="img/oc_logo.svg" width="150px" height="150px" onerror="ImgError(this);" /></div>
+	     </td> <td style="width:60%; aligni:center;" >
+		     <div style="text-align: center;" ><H1>Knowledge Solution Manager</h1><hr/></div>
+		  <div style="text-align: center; height:15px; color: blue;" id="ulogin" >&nbsp;</div>
+	     </td><td style="width:20%; align:right;" >
+		<div style="float: both; margin-left: 0px; margin-top: 0px;"><img src="img/ksm-logo.png" style="width:100px; height:100px; right:10px;" /></div>
+	     	<div style="float: both; margin-left: 0px; margin-top: 0px; text-align: right; height:15px; color: blue;" id="ulogin1" >&nbsp;</div>
+	     </td>
+	   </tr>
+	   <tr ><td colspan=3 id="menu" style="width:100%; background-Color:blue" >
+	     <!-- <object type="text/html" data="inc/nav.html" width="100%" height="134px" style="overflow:auto;border:1px ridge gray"></object> -->
+             <nav id="topNav" style="width:100%; height:16px;" >
+                <ul>
+                    <li id="l1" ><a id="a1" href="#Solution" title="Solution" onClick="call(this,'top');click('s11');" >Solution</a></li>
+                    <li id="l2" ><a id="a2" href="#My_Knowledge" title="My Knowledge" onClick="call(this,'top');click('s21');" >My Knowledge</a></li>
+                    <li id="l3" ><a id="a3" href="#Creator" title="Creator" onClick="call(this,'top');click('s32');" >Creator</a></li>
+                    <li id="l4" ><a id="a4" href="#Manufactor" title="Manufactor" onClick="call(this,'top');click('s41');" >Manufactor</a></li>
+                    <li id="l5" ><a id="a5" href="#Admin" title="Admin" onClick="call(this,'top');click('s51');" >Admin</a></li>
+                </ul>
+              </nav>
+            </td></tr>
+            <tr ><td colspan=3 id="menu" style="width:100%; background-Color:blue" >
+            <nav id="subNav" style="width:100%; height:10px;" >
+                    <div id="s1" style="display:none;" class="subnav-content" > 
+                    </div>
+                    <div id="s2" style="display:none;" class="subnav-content" > 
+                         <ul>
+                             <li id="l21" ><a id="s21" href="#Personal" onClick="call(this,'sub');openT(event, 'Personal','tabcontent','tablinks')" title="My Personal Knowledge">Personal</a></li>
+                             <li id="l22" ><a id="s22" href="#Manager" onClick="call(this,'sub');openT(event, 'Manager','tabcontent','tablinks')" title="My Managed Knowledge">Manager</a></li>
+                         </ul>
+                   </div>
+                    <div id="s3" style="display:none;" class="subnav-content" >
+                             <ul>
+                             <li id="l31" ><a id="s31" href="#Create" onClick="call(this,'sub');openT(event, 'Create','tabcontent','tablinks')" title="Create/Update">Create/Update</a></li>
+                             <li id="l32" ><a id="s32" href="#Pickup" onClick="call(this,'sub');openT(event, 'PickUp','tabcontent','tablinks')" title="Pickup Solution">Prickup Solution</a></li>
+                         </ul>
+
+                    </div>
+                    <div id="s4" style="display:none;" class="subnav-content" > 
+                    </div>
+                    <div id="s5" style="display:none;" class="subnav-content" >
+                    </div>
+            </nav>
+        
+	  </td></tr>
+	  <tr ><td colspan=3 style="width:100%" id="inner" > Welcome  </td></tr>
+	</table>
+	 <div class="box stack-top" style="background: orange; display: none;" id="loginDiv" ></div>
+  <app-root>
+  </app-root>
+   <script>
+	   loader("./View.jsp?selector","","impuser");
+           loader("View.jsp", "action=getRegio", "csRegio");
+           
+           closeAllSub();
+           
+           //var bit = window.location.href.slice(window.location.href.indexOf('#'));
+           //logger(0,bit);
+           //var opti=bit.split("?");
+           //logger(0,opti[0]+"<->"+opti[1]);
+           //var a="a1";
+           //for(i=1;i<4;i++){
+           //    var b = "a"+i;
+           //    sel = document.getElementById(b);
+           //    if ( sel ) {
+           //        if (sel.href == opti[0]) { a=b;  i=1000;}
+           //    }
+           //}
+           //document.getElementById(a).click();
+           switchOn('Solution','');
+   </script>
+
+  </body>
+</html>
+
+

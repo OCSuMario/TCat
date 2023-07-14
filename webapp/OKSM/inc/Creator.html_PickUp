@@ -1,0 +1,9 @@
+<div >
+  <select id="SelSolutions" onChange="pickupSolution(this);" >
+	<option value="-1" > -- select Solution to modify -- </option>
+  </select>
+</div>
+
+<script>
+   loader("View.jsp", "action=loadSolOverview&to=SelSolutions&auth="+auth, "SelSolutions");
+</script>

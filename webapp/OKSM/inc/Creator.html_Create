@@ -1,0 +1,110 @@
+<div style="color: white;" id="CreatorSolution" >
+	    <div class="tab">
+		<button class="tabsublinks" id="defsublinks" onclick="openTab(event, 'Description','tabsubcontent','tabsublinks');">Description</button>
+                <button class="tabsublinks" onclick="openTab(event, 'Benefits',  'tabsubcontent','tabsublinks');">Benefits</button>
+                <button class="tabsublinks" onclick="openTab(event, 'Advantages','tabsubcontent','tabsublinks');">Advantages</button>
+		<button class="tabsublinks" onclick="openTab(event, 'Offers','tabsubcontent','tabsublinks');">Special Offers</button>
+		<button class="tabnixlink"   onclick="return;" disabled style="width: 150px;" >&nbsp;</button>
+		<button class="tabnixlink"  onclick="createSolution();" >Create/Update Solution</button>
+            </div>
+            <!-- Tab content -->
+            <div id="Description" class="tabsubcontent" style="color: white; display: none;" >
+	       <h2 style="color: gray;" >Create Solutions  </h2>
+	       <input id="csId" type=hidden value="" />
+	       <table width="90%" id="definition" >
+		<tr><td width="85%" ><h5 style="color: gray;" >Name</h5></td><h3 style="color: gray;" ></td>
+		    <td width="10%"  ><h5 style="color: gray;" >Region</h5></td>
+		    <td width="5%"  ><h5 style="color: gray;" >PT</h5></td></tr> 
+		<tr><td><input id="csName" type=text size=32 value="" /></td>
+		    <td><select id="csRegio" ><option value="0">All</option></select>
+		    <td><input id="csPT" type=text size=5 value="" /></td></tr>
+                <tr><td colspan=3 width="100%" ><sub><h5 style="color: gray;">Short Description</h5></sub></td></tr>
+		<tr><td colspan=3 ><textarea id="csShortDesc" style="width: 95%; height: 100xpx;" ></textarea></td></tr>
+	        <tr><td colspan=3 width="100%" ><sub><h5 style="color: gray;" >Long Description</h5></sub></td></tr>
+		<tr><td colspan=3 ><textarea id="csLongDesc" style="width: 95%; height: 200px;" ></textarea></td></tr>
+		</table>
+            </div>
+
+            <div id="Benefits" class="tabsubcontent" style="color: white; display: none;" >
+		<h2 style="color: gray;" >Benefits</h2>
+                <table  style="box-shadow: 8px 8px 3px #ccc;" id="benefits" >
+                   <tr> <td style="width: 8px;" > &nbsp;</td>
+                        <td style="width: 8px;" ><button onclick="trremove(this,1);" disabled id="bminus">-</button></td>
+                        <td style="width: 15%;"  >Benefits</td>
+                        <td style="width: 75%;"  >Description</td>
+                        <td style="width: 8px;" ><button onclick="tradd(this);" id="bplus">+</button></td>
+                   </tr>
+                </table>
+
+                <h2 style="color: gray;" >Feature</h2>
+                <table   style="box-shadow: 8px 8px 3px #ccc;" id="feature" >
+                   <tr> <td style="width: 8px;" > &nbsp;</td>
+                        <td style="width: 8px;" ><button onclick="trremove(this,1);" disabled id="fminus">-</button></td>
+                        <td style="width: 15%;"  >Feature</td>
+                        <td style="width: 75%;"  >Description</td>
+                        <td style="width: 8px;" ><button onclick="tradd(this);" id="fplus">+</button></td>
+                   </tr>
+                </table>
+
+            </div>
+            <div id="Advantages" class="tabsubcontent" style="color: white; display: none;" >
+                <h2 style="color: gray;" >Advantages</h2>
+		<table id="manuprod"   style="box-shadow: 8px 8px 3px #ccc;" >
+                   <tr> <td style="width: 8px;" > &nbsp;</td>
+			<td style="width: 8px;" ><button onclick="trremove(this,1);" disabled id="minus">-</button></td>
+			<td style="width: 20%;color: orange;"  >Manufactor</td>
+			<td style="width: 40%;color: orange;"  >Product</td>
+			<td style="width: 20%;color: orange;"  >Level</td>
+			<td style="width: 8px;" ><button onclick="tradd(this);" id="plus">+</button></td>
+		   </tr>
+                </table>
+		<br/>
+		<h2 style="color: gray;" >Sectors</h2>
+		<table id="branches"   style="box-shadow: 8px 8px 3px #ccc;" >
+			 <tr> 	<td style="width: 8px;" > &nbsp;</td>
+                        	<td style="width: 8px;" ><button onclick="trremove(this,1);" disabled id="minus">-</button></td>
+				<td style="width: 10%;"  >Enable/Disable</td><td style="width: 5%;"  > </td>
+				<td style="width: 85%;"  >Sector</td>
+				<td style="width: 8px;" ><button onclick="tradd(this);" id="plus">+</button></td>
+			 </tr>
+		</table>
+		<br/>
+                <h2 style="color: gray;" >Custom Anchor</h2>
+                <table id="anchors"   style="box-shadow: 8px 8px 3px #ccc;" >
+                         <tr>   <td style="width: 8px;" > &nbsp;</td>
+                                <td style="width: 8px;" ><button onclick="trremove(this,1);" disabled id="minus">-</button></td>
+                                <td style="width: 10%;"  >Enable/Disable</td><td style="width: 5%;"  > </td>
+                                <td style="width: 85%;"  >Pick Up Sales Anchor</td>
+                                <td style="width: 8px;" ><button onclick="tradd(this);" id="plus">+</button></td>
+                         </tr>
+                </table>
+		<br/>
+                <h2 style="color: gray;" >Project Plan</h2>
+		    <input type=hidden id=gantt value="0" />
+		<div id="ganttdiv" >
+
+		</div>
+            </div>
+            <div id="Offers" class="tabsubcontent" style="color: white; display: none;" >
+                <h2 style="color: gray;">Special Offers</h2>
+
+		<table   style="box-shadow: 8px 8px 3px #ccc;" id="offers" >
+                   <tr> <td style="width: 8px;" > &nbsp;</td>
+                        <td style="width: 8px;" ><button onclick="trremove(this,1);" disabled id="minus">-</button></td>
+                        <td style="width: 15%;"  >Special Offers</td>
+                        <td style="width: 70%;"  >Description</td>
+			<td style="width: 10px;"  >PT</td>
+                        <td style="width:  8px;" ><button onclick="tradd(this);" id="oplus">+</button></td>
+                   </tr>
+                </table>
+
+            </div>
+
+            <!-- end Tabbed -->
+</div>
+
+<script>
+	document.getElementById("defsublinks").click();
+	loader("View.jsp", "action=getRegio", "csRegio");
+	loaded=0;
+</script>

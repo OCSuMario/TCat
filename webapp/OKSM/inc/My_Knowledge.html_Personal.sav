@@ -1,0 +1,41 @@
+
+<h3>View and Update My Knowledge</h3>
+<table id="knownTab" cellspacing="0" width="100%" >
+<colgroup>
+     <col width="50%" align="right">
+     	<col width="30">
+     	<col width="30">
+     	<col width="30">
+     	<col width="30">
+	<col width="30">
+	<col width="30">
+	<col width="50">
+   </colgroup>
+  <tr >
+     <th style="text-align:left; text-valign:down;  width:50%; height:100px;" >Product</th>
+     <th style="transform: rotate(-90deg);width: 90px;" >Beginner</th>
+     <th style="transform: rotate(-90deg);width: 90px;">System Engineer</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Architect</th>
+     <th style="transform: rotate(-90deg);width: 90px;" className="rotateth">PreSales</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Migrator</th>
+     <th style="transform: rotate(-90deg);width: 90px;">&nbsp;</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Knowledge Lead</th>
+  </tr>
+  <tr><td style="font-size: 16px; background-color: #666666;" colspan="8">Oracle</td></tr>
+  <tr>
+     <td style="font-size: 12px; text-align:left; width:50%;" >Oracle MySQL</td>
+     <td style="text-align: center;"><input type="checkbox" id="horns" name="horns"></td>
+     <td style="text-align: center;"><input type="checkbox" id="horns" name="horns"></td>
+     <td style="text-align: center;"><input type="checkbox" id="horns" name="horns"></td>
+     <td style="text-align: center;"><input type="checkbox" id="horns" name="horns"></td>
+     <td style="text-align: center;"><input type="checkbox" id="horns" name="horns"></td>
+     <td style="text-align: center;">&nbsp;</td>
+     <td style="text-align: center;"><input type="checkbox" id="horns" name="horns"></td>
+  </tr>
+  <tr><td style="font-size: 16px; background-color: #666666;" colspan="8">EDB</td></tr>
+</table>
+
+<script >
+	loader('View.php', 'action=getKnowledge&user='+user+'&auth='+auth+'&tab=knownTab', 'knownTab');
+</script>
+

@@ -1,0 +1,40 @@
+  <div style="margin-left: 0px; position: relative; width:90%; z-index: 5; " id="body_layer">
+           <div class="tab"  style="display: none;" >
+                <button class="tablinks" onclick="openTab(event, 'Create','tabcontent','tablinks')" id="createln" >Create/Update</button>
+                <button class="tablinks" onclick="openTab(event, 'PickUp','tabcontent','tablinks')" id="deflinks" >PickUp</button>
+            </div>
+
+
+	    <!-- Tab content -->
+            <div id="Create" class="tabcontent" style="color: white;"></div>
+
+            <div id="PickUp" class="tabcontent" style="color: white;" ></div>
+
+            <!-- end Tabbed -->
+
+	    <div style="height: 100px; line-height: 100px; display: none;" class="bumper" > Product List
+		<table > 
+		  <tr><td>Product List</td><td >  </td><td>Manufactor filter</td></tr>
+		  <tr> <td>
+                    <select name="products" id="products" onChange="updateSelect(this, 'productUpdate');" >
+                        <option value=""> -- Please choose a product --</option>
+		    </select>  </td><td> </td><td>
+		    <select name="manufactors" id="manufactors" onChange="updateSelect(this, 'productUpdate');" >
+                        <option value=""> -- Single Manufactor Filter - choose one --</option>
+                    </select>
+		</td></tr>
+		</table>
+                <hr />
+            </div>
+
+	  </div>
+   </div>
+	  <script>
+		b=window['s32'];
+		if ( b )  { 
+                    b.click(); 
+                    li=document.getElementById("deflinks");	
+                    if ( li ) { li.click(); }
+                }  else { window["logger"](0,"s32 not found"); }
+	  </script>
+

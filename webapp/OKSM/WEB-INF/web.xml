@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+    <servlet>
+        <servlet-name>DbConfig</servlet-name>
+        <servlet-class>com.macmario.oksm.config.DbConfig</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>UserAuth</servlet-name>
+        <servlet-class>com.macmario.oksm.user.OksmUserAuth</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>DbConfig</servlet-name>
+        <url-pattern>/config</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>UserAuth</servlet-name>
+        <url-pattern>/user/auth</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.ico</url-pattern>
+    </servlet-mapping>
+    <session-config>
+        <session-timeout>
+            30
+        </session-timeout>
+    </session-config>
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+</web-app>

@@ -1,0 +1,58 @@
+<div class="tab">
+                <button class="tabsublinks" onclick="openTab(event, 'pers_view','tabsubcontent','tabsublinks')" id="pers_viewLn" >View</button>
+                <button class="tabsublinks" onclick="openTab(event, 'pers_edit','tabsubcontent','tabsublinks')" id="pers_editLn" >Add</button>
+</div>
+<div id=pers_view class="tabsubcontent" style="color: gray; display: block;" >
+  <h3>View and Update My Knowledge</h3>
+  <table id="knownTab" cellspacing="0" width="100%" >
+   <tr >
+     <th style="text-align:left; text-valign:down;  width:50%; height:100px;" >Product</th>
+     <th style="transform: rotate(-90deg);width: 90px;" >Beginner</th>
+     <th style="transform: rotate(-90deg);width: 90px;"><ssi run="isUser" /> </th>
+     <th style="transform: rotate(-90deg);width: 90px;">Architect</th>
+     <th style="transform: rotate(-90deg);width: 90px;" className="rotateth">PreSales</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Migrator</th>
+     <th style="transform: rotate(-90deg);width: 90px;">&nbsp;</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Knowledge Lead</th>
+   </tr>
+  </table>
+</div>
+<div id=pers_edit class="tabsubcontent" style="color: gray; display: none;" >
+  <h3>Missing Knowledge (only known products)</h3>
+  <table id="knownTabAdd" cellspacing="0" width="100%" >
+  <tr >
+     <th style="text-align:left; text-valign:down; width:50%; height:100px;" >Product</th>
+     <th style="transform: rotate(-90deg);width: 90px;" >Beginner</th>
+     <th style="transform: rotate(-90deg);width: 90px;">System Engineer</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Architect</th>
+     <th style="transform: rotate(-90deg);width: 90px;" className="rotateth">PreSales</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Migrator</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Add</th>
+     <th style="transform: rotate(-90deg);width: 90px;">Remove</th>
+  </tr>
+  <tr>
+     <td colspan=6 >&nbsp;</td>
+     <td colspan=2 ><input type=button  onclick="alert('save');" value="Save" /></td>
+  </tr>
+  <tr id=trmain >
+     <td style="text-align:left; text-valign:down;  width:50%;">
+		<select id="manufactors" onChange="updateSelectVal(this, 'products0', 'getProducts');" ><option name=manu0 >Manufactor</option></select>
+		<select id="products0" ><option name="prod0" >Product</option></select>
+     </td>
+     <td><input type=checkbox (></td>
+     <td><input type=checkbox /></td>
+     <td><input type=checkbox /></td>
+     <td><input type=checkbox /></td>
+     <td><input type=checkbox /></td>
+     <td><input type=button  onclick="updateTab(this);"  value="+" /></td>
+     <td><input type=button  onclick="updateTab(this);" value="-" /></td>
+  </tr>
+ </table>
+
+</div>
+<div id="hiddendiv" >
+</div>
+<script >
+	loader('View.jsp', 'action=getKnowledge&user='+user+'&auth='+auth+'&tab=knownTab', 'knownTab');
+</script>
+

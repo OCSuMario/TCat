@@ -1,0 +1,16 @@
+<div style="color: white; >
+<form action="Log.jsp" method="post" onSubmit="return false;" >
+<table>
+  <tr><td colspan=4>&nbsp;</td></tr>
+  <tr>
+    <td>&nbsp;</td><td><label for="fname">User:</label> </td><td>&nbsp;</td><td> <input type="text" id="fname" name="fname"></td>
+  </tr><tr>
+   <td> &nbsp;</td><td><label for="pname">Password:</label> </td><td>&nbsp;</td><td> <input type="password" id="pname" name="pname"></td>
+  </tr><tr>
+    <td>&nbsp;</td><td><input type="submit" value="Login" onClick="sendauth(this);return false;" /> </td>
+    <td>&nbsp;</td><td><input type="submit" value="Cancel"  onClick="sendauth(this);return false;" /> </td>
+  </tr>
+  <tr><td colspan=4>&nbsp;</td></tr>
+</table>
+</form>
+</div>

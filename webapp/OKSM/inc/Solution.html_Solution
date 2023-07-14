@@ -1,0 +1,33 @@
+<div style="clear: both; height: 0px; line-height: 0px; " class="spacer"> </div>
+<div style="margin:0 auto; position: relative; width: 90%; z-index: 5; " id="body_layer">
+	    <div>
+		<hr />
+		<div id="lookupDiv" >
+			<input type=text id="soltext" value="" style="width: 75%;" onkeypress="if (event.keyCode===13) lookupValue('0');" > &nbsp;
+			<input type=button id="lookup" value="Lookup" onClick="lookupValue('0');" /> <input type=button id="catalog" value="Catalog" onClick="lookupValue('1');"/> <br/> <br/>
+			<label for="csRegio" style="color: gray;"  >Filter Solution Region : </label><select id="csRegio" ><option value="0">All</option></select><br/>
+		        <label for="manufactors" style="color: gray;"  >Filter Manufactor : </label><select name="manufactors" id="manufactors" onChange="updateSelect(this, 'products');if ( document.getElementById('ResultDiv').innerHTML !== ''){ lookupValue('0'); };" >
+                             <option value=""> -- Manufactor Filter --</option>
+                    	</select>	
+			<label for="manufactors" style="color: gray;"  >and Product :<select name="products" id="products" onChange="updateSelect(this, '');if ( document.getElementById('ResultDiv').innerHTML !== ''){ lookupValue('0'); };" >
+                             <option value="">-- Products Filter --</option>
+				</select>
+			<input type=button id="reset" value="Reset All Filter" onClick="resetValue();" />
+
+		</div>
+		<hr/>
+		<div id="ResultDiv" style="color: blue;" ></div>
+	    </div>
+            <div style="height: 0px; line-height: 0px; " class="bumper"> </div>
+	    <script>
+		   loader("./View.jsp?selector","","impuser"); 
+		   loader("View.jsp", "action=getRegio", "csRegio");
+	    </script>
+
+            <div style="height:90%; line-height:90%; " id="spacerID" class="spacer"> </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+

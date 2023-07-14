@@ -1,0 +1,76 @@
+<div style="color: gray;" id="My_Knowledge" >
+            <div class="tab">
+                <button class="tabsublinks" id="defsublinks" onclick="openTab(event, 'Plan','tabsubcontent','tabsublinks');">Plan</button>
+                <button class="tabsublinks" onclick="openTab(event, 'WhatMeans',  'tabsubcontent','tabsublinks');window['loadInfo']('WhatMeans');">WhatMeans</button>
+            </div>
+            <!-- Tab content -->
+            <div id="WhatMeans" class="tabsubcontent" style="color: gray; display: none;" >
+               <h3 style="color gray;" >Resource Planning</h3>
+		<select id=typ onChange="updateUserList(this,'ulist');" >
+			<option value="-1" >All Users-Area</option>
+		</select>
+		<select id=ulist onChange="window['updateUserKM'](this, document.getElementById('typ')  ,'knownTabWhatMean');" >
+			<option value="-1" >All Users</option>
+		</select>			
+		<select id="plist" onChange="window['updateUserKM2']('plist', 'ulist' , 'typ' ,'knownTabWhatMean');" >
+                        <option value="1" selected="selected" >Knowledge</option>
+		        <option value="2"  ><del>Solutions</del></option>
+                </select>
+		<div id=kmTab >
+			Results:
+ 			<table id="knownTabWhatMean" cellspacing="0" width="100%" >
+                        <tr >
+                     		<th style="text-align:left; text-valign:down;  width:50%; height:100px;" >Product</th>
+                     		<th style="transform: rotate(-90deg);width: 360px;" >User</th>
+                     		<th style="transform: rotate(-90deg);width: 90px;" >Beginner</th>
+                     		<th style="transform: rotate(-90deg);width: 90px;">System Engineer</th>
+                     		<th style="transform: rotate(-90deg);width: 90px;">Architect</th>
+                     		<th style="transform: rotate(-90deg);width: 90px;" className="rotateth">PreSales</th>
+                     		<th style="transform: rotate(-90deg);width: 90px;">Migrator</th>
+                     		<th style="transform: rotate(-90deg);width: 90px;">&nbsp;</th>
+                     		<th style="transform: rotate(-90deg);width: 90px;">Knowledge Lead</th>
+                        </tr>
+                </table>
+
+		</div>
+            </div>
+   	   <div id="Plan" class="tabsubcontent" style="color: gray; display: block;" >	
+		<h3>Plan Knowledge</h3>
+		<select name="familys" id="familys" onChange="window.top['getKMList'](this,'manufactors2','products2','fokus');" >
+       			 <option value="-1" >Select Knowledge Family</option>
+  		</select>
+
+		<select name="manufactors2" id="manufactors2" onChange="window.top['getKMList'](this,'products2','familys','fokus');" >
+        		<option value="-1" >Select Manufactor</option>
+   		</select>
+
+		<select name="products2" id="products2" onChange="window.top['getKMList'](this,'familys','manufactors2','fokus');" >
+        		<option value="-1" >Select Product</option>
+   		</select>
+	
+		<select name="fokus" id="fokus" onChange="window.top['getKMList'](this,'familys','manufactors2','products2');" >
+                        <option value="-1" >Filter Function Area</option>
+                </select>
+
+
+		<table id="knownTabMana" cellspacing="0" width="100%" >
+		  <tr >
+		     <th style="text-align:left; text-valign:down;  width:50%; height:100px;" >Product</th>
+		     <th style="transform: rotate(-90deg);width: 360px;" >User</th>
+		     <th style="transform: rotate(-90deg);width: 90px;" >Beginner</th>
+		     <th style="transform: rotate(-90deg);width: 90px;">System Engineer</th>
+		     <th style="transform: rotate(-90deg);width: 90px;">Architect</th>
+		     <th style="transform: rotate(-90deg);width: 90px;" className="rotateth">PreSales</th>
+		     <th style="transform: rotate(-90deg);width: 90px;">Migrator</th>
+		     <th style="transform: rotate(-90deg);width: 90px;">&nbsp;</th>
+		     <th style="transform: rotate(-90deg);width: 90px;">Knowledge Lead</th>
+		  </tr>
+		</table>
+	    </div>
+
+</div>
+
+<script>
+    loader("./View.jsp?selector","window=manufactors2","");
+</script>
+

@@ -1,0 +1,34 @@
+<h3> Personal Settings</h3>
+
+<form  onSubmit="return false;" >
+<table>
+
+   <tr><td style="text-align: rigth;" >Old Password : </td><td style="align: center;" ><input id="p0" type=password value="" oninput="" /> </td> </tr>
+   <tr><td style="text-align: rigth;" >New Password : </td><td style="align: center;" ><input id="p1" type=password value="" oninput="checkValid(); " /> </td> </tr>
+   <tr><td style="text-align: right;" >Retry Password : </td><td style="align: center;" ><input id="p2" type=password value="" oninput="checkValid(); " /> </td> </tr>
+
+   <tr><td style="text-align: center; color: gray; font-size: small;" colspan=2 >
+	<label id="UPPERCASE">UpperCase</label> &nbsp; <label id="LOWERCASE">LowerCase</label> <label id="DIGISTS">Digists</label> <label id="SPECIALS">Special Character</label> 
+   </td> </tr>
+   <tr><td style="text-align: rigth;" colspan=2 ><input id="id" type=Submit disabled value="Update" />
+        <input id="OK" type=hidden value="" /> </td> </tr>
+
+</table>
+</form>
+<hr />
+
+<h4>PickUp My Knowledge </h4>
+<p> 
+  <input id="pickup" type=Submit disabled onClick="pickupUser(); return false;" value="Sync with Oskar" />
+</p>
+
+<script>
+    obj = document.getElementById("pickup"); 
+    if ( obj ) {
+	log(3, "pickup exist");
+	if ( user !== "" ) {
+		log(2, "user exist");
+		updateEnable("pickup");
+	}
+    }
+</script>

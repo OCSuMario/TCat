@@ -1,0 +1,80 @@
+<div style="color: black; bgcolor: gray; " > 
+            <div style="height: 100px; line-height: 80px; " class="bumper" > Manufaktor List
+                <select name="manufactors" id="manufactors" onChange="updateSelect(this, 'manufactorUpdate');" >
+                        <option value=""> --Please choose a manufactor --</option>
+                </select>
+                <hr />  
+            </div>
+            <div style="height: 300px; " class="bumper">
+                <form  id="manufactorUpdate" method="post" action="Edit.jsp" >
+                        <div id="manufactorUpdate1" >Manufactor insert information: </div><br/>
+                        <P />Manufactor Name:<input name="manu_name" id="manu_name" type="text" onChange="updateButton('save','insert');" />
+                        <UL PLAIN> Manufactor is possible for:
+                                <LI><input name="manu_cloud"    id="manu_cloud"   type=checkbox onChange="updateEnable('save');"  > Cloud
+                                <LI><input name="manu_product"  id="manu_product" type=checkbox  onChange="updateEnable('save');" > Products
+                                <LI><input name="manu_standard" id="manu_standard" type=checkbox onChange="updateEnable('save');" > Standards
+                        </UL>
+                    <input type="submit" name="save"   id="save"   disabled value="save"   /> manufactor or
+                    <input type="submit" name="delete" id="delete" disabled value="delete" /> manufactor (includes products and user entries) <br/>
+                    <hr />
+                    <br/>Select Product:
+                    <select name="productList" id="productList" onChange="updateSelect(this, 'productUpdate');updateButtonIf(this,'-1', 'prodUpdate', 'insert');" >
+                            <option value=""> --choose one product to pickup--</option>
+                    </select>
+                </form>
+                </div>
+                <div style="color: white; display: none; " id="divProduct" >
+                        <hr/>Update/Insert Product:
+                      <form  id="productUpdate" method="post" action="Edit.php" >
+                              <input name="prod_prod" id="prod_prod" type="hidden" value="-1" />
+                              <input name="prod_manu" id="prod_manu" type="hidden" value="-1" />
+                              <P />Product Name: <input name="prod_name" id="prod_name" type="text" onChange="updateEnable('prodUpdate');" />
+                                                 &nbsp; &nbsp; Product Area : <select name="prod_fam"  id="prod_fam"  onChange="updateEnable('prodUpda
+te');"  > </select>
+                          <table>
+                                  <tr><td>possible for:</td><td> &nbsp; </td>
+                                      <td>use in the cloud:</td><td> &nbsp; </td>
+                                      <td>use in OC Group:</td><td> &nbsp; </td>
+                                      <td>defined Version:</td><td> &nbsp; </td></tr>
+                            <tr><td colspan=2 >
+                                <input name="prod_cloud"    id="prod_cloud"   type=checkbox onChange="updateEnable('prodUpdate');" /> Cloud <br/>
+                                <input name="prod_product"  id="prod_product" type=checkbox  onChange="updateEnable('prodUpdate');" /> Products <br/>
+                                <input name="prod_standard" id="prod_standard" type=checkbox onChange="updateEnable('prodUpdate');" /> Standards <br/>
+                            </td>
+                            <td colspan=2 >
+                                <input name="prod_cloud1" id="prod_cloud1" type=checkbox onChange="if( checkOK(this) ) updateEnable('prodUpdate');" /> AWS  <br/>
+                                <input name="prod_cloud2" id="prod_cloud2" type=checkbox onChange="if( checkOK(this) ) updateEnable('prodUpdate');" /> Azure  <br/>
+                                <input name="prod_cloud3" id="prod_cloud3" type=checkbox onChange="if( checkOK(this) ) updateEnable('prodUpdate');" /> OCI <br/>
+                                <input name="prod_cloud4" id="prod_cloud4" type=checkbox onChange="if( checkOK(this) ) updateEnable('prodUpdate');" /> Google <br/>
+                             </td>
+                             <td colspan=2 >
+                                <input name="prod_isSW"      id="prod_isSW"      type=checkbox onChange="updateEnable('prodUpdate');" /> Development <br/>
+                                <input name="prod_isInfra"   id="prod_isInfra"   type=checkbox onChange="updateEnable('prodUpdate');" /> Infrasture <br/>
+                                <input name="prod_isService" id="prod_isService" type=checkbox onChange="updateEnable('prodUpdate');" /> Service <br/>
+                                <input name="prod_isMana"    id="prod_isMana"    type=checkbox onChange="updateEnable('prodUpdate');" /> Management <br/>
+                             </td>
+
+<td colspan=2 >
+                                 <select name="prod_version" id="prod_version"  multiple style="width: 160px;" >
+                                         <Option value="ALL" selected >ALL Versions</option>
+                                 </select> <br/>
+                                 <input  name="prod_versionadd" id="prod_addversion" type=text value="" style="width: 152px;" onChange="updateEnable('prodUpdate');" /> product
+                              </td>
+                            </tr>
+                            <tr>
+                              <td colspan=6 >
+                                <input type="submit" name="prodUpdate"  id="prodUpdate"   disabled value="update" />
+                              <td colspan=2 >
+                                <input type="submit" name="prodDelete"  id="prodDelete"   disabled value="delete" />
+                              </td>
+                             </tr>
+                          </table>
+                      </form>
+                </div>
+            </div>
+</div>
+<script>
+  loader("./View.jsp?selector","",mana); 
+  <ssi run="ScriptOption" get="Dblist" opt="manufactor0" goal="manufactors" />
+
+</script>

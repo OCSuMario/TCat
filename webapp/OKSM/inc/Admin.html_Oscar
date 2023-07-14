@@ -1,0 +1,26 @@
+ <h3> Oscar Updates/Settings</h3>
+
+
+<hr />
+<p> reload prodmap &nbsp; <br/> 
+  <input type=button name=csCont value=Re-Load onclick="alert(document.getElementById('csAll').checked);" />
+  <input type=checkbox name=csAll id=csAll /> reload all
+
+  <table id=dispcsTab style="border:1" />
+   <tr><td><input type=button onClick="loadNextPage(-1);" value="<" /></td><td colspan=4 > &nbsp; </td><td style="align: right;"><input type=button onClick="loadNextPage(1);" value=">" /></td></tr>
+   <tr><td colspan=5 >
+     <table id=csTab style="border:1" />
+      <tr>
+	<th>Name</th><th>OskarID</th><th>KSM Prod ID</th><th>Manufactor</th><th>Product</th>
+      </tr>
+     </table>
+   </td></tr>
+  </table>
+</p>
+
+<div id="hiddenDiv" >
+   <select name="manufactors" id="manufactors" >
+	<option value="-1" >Select Manufactor</option>
+   </select>
+</div>
+<script> loader("./View.jsp?oscar","oscar=map&page=20",""); </script>

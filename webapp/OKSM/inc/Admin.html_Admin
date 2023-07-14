@@ -1,0 +1,24 @@
+<div style="color: gray;" >
+ <h3>Admin Settings</h3>
+ <select id="impuser" name="impuser" onChange="updateSelect(this, 'impuser');updateEnable('runimpuser');updateEnable('updatepw');removeOptionFromSelect('impuser','-1');updateEnable('isUpdater');updateEnable('isManager');updateEnable('isAdmin');" >
+                            <option value="-1" > --- select user --- </option>
+ <ssi run="ScriptUser" get="Dblist" opt="user0" />
+
+ </select>
+ <input name="runimpuser" id="runimpuser" value="impersonate" type=submit disabled onClick="impersonate(this, 'impuser');"/>
+ <hr/>
+ update passwort for selected user:
+ <input name="authToken0" id="authToken0" type=password value="" />
+ <input name="updatepw" id="updatepw" value="Set Password" type=submit disabled onClick="updatepw(this, 'impuser');"/>
+ <p >&nbsp;</p>
+
+ <table >
+	 <tr><td> User is &nbsp; </td></tr>
+	 <tr><td style="text-align:rigth; " >Updater:</td><td style="text-align:left; width:100px; "><input id="isUpdater" type=checkbox  disabled onclick="updateAdmin(this,getSelected('impuser','value'));" /> </td>
+             <td style="text-align:rigth; " >Manager:</td><td style="text-align:left; width:100px;" ><input id="isManager" type=checkbox  disabled onclick="updateAdmin(this,getSelected('impuser','value'));" /> </td>
+	     <td style="text-align:rigth; " >Admin:</td><td style="text-align:left; width:100px;" ><input id="isAdmin" type=checkbox  disabled onclick="updateAdmin(this,getSelected('impuser','value'));" /> <td></tr>
+</table>
+
+</div>
+
+

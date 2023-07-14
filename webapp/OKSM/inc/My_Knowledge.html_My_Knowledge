@@ -1,0 +1,26 @@
+    <div style="text-align: center; ">
+      <div style="margin-bottom: 0px; margin-left: auto; margin-right: auto; margin-top: 0px; overflow: hidden; position: relative; word-wrap: break-word;  text-align: left; width:90%; " id="body_content">
+
+          <div style="margin-left: 0px; position: relative; width:90%; z-index: 5; " id="body_layer">
+ <!-- Tab content -->
+            <div id="Personal" class="tabcontent" style="color: darkgreen;"></div>
+
+            <div id="Manager" class="tabcontent" style="color: blue;" ></div>
+
+            <!-- end Tabbed -->
+
+            <div style="height: 0px; line-height: 0px; " class="bumper"> </div>
+          </div>
+        </div>
+      </div>
+    </div>
+<script>
+	addScript("js/My_Knowledge.js") ;	
+        loader("./View.jsp?selector","","impuser");
+        var l = document.getElementById("s21");
+	if ( l )  {
+                    l.click();
+	}
+</script>
+
+
