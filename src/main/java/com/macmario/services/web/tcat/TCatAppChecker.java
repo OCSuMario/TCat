@@ -7,10 +7,12 @@ package com.macmario.services.web.tcat;
 import com.macmario.io.file.ReadFile;
 import com.macmario.io.thread.RunnableT;
 import jakarta.servlet.ServletContext;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import org.apache.catalina.Context;
+import org.apache.catalina.LifecycleException;
 
 /**
  *
@@ -47,6 +49,7 @@ class TCatAppChecker extends RunnableT {
                long l = System.currentTimeMillis();
                if ( ! map.isEmpty() && (d+30000) < l ) {
                     //System.out.println("start: d:"+d+" l:"+l+"  ="+(l-d));
+                    boolean ready= tc.getBooleanValue( System.getProperty("com.macmario.TCAT.RestartAfterDeployment") );
                     Iterator<String> itter =map.keySet().iterator();
                     while( itter.hasNext() ) {
                          ArrayList<Object> ar = map.get(itter.next());
@@ -58,6 +61,10 @@ class TCatAppChecker extends RunnableT {
                                 tc.redeployApp(f,  c );
                               } else {
                                 System.out.println("WARN: need deployment for "+c.getName());
+                                if ( ready ) {
+                                   try { tc.stop(); } catch(LifecycleException io){}
+                                   setClosed();
+                                }
                               }
                               m=System.currentTimeMillis();
                          }

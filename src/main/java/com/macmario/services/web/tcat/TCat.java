@@ -23,7 +23,11 @@ import java.io.ByteArrayInputStream;
 import java.util.Properties;
 import org.apache.catalina.Globals;
 import org.apache.catalina.WebResourceRoot;
+import org.apache.catalina.connector.Connector;
 import org.apache.catalina.webresources.StandardRoot;
+import org.apache.coyote.http11.Http11NioProtocol;
+import org.apache.tomcat.util.net.SSLHostConfig;
+import org.apache.tomcat.util.net.SSLHostConfigCertificate;
 
 /**
  *
@@ -31,12 +35,14 @@ import org.apache.catalina.webresources.StandardRoot;
  */
 public class TCat extends TCatRessources {
     private final Tomcat tc;
+    private int   err=0;
     private final Context rcontext;
             final TCat tcat;
     private final File base;
-    private       File webbase;
-    private       File webroot;
+   
     private Properties config = new Properties();
+    private final String mainUrl;
+    private final String cl;
     String root="/";
     
     String rWelcome="<html>\n<title>Welcome</title>\n<body>\n"+
@@ -45,11 +51,13 @@ public class TCat extends TCatRessources {
     
     public TCat( String host, int port, String ba ) {
         super();
+        this.cl="TCat";
         this.tcat=this;
         this.base   =new File(ba);
         this.webbase=new File(ba+File.separator+"webapp");
         this.webroot = new File( webbase.getAbsolutePath()+File.separator+"ROOT");
         
+        debug=2;
         
         this.tc = new Tomcat();
         this.tc.setHostname(host);
@@ -59,6 +67,11 @@ public class TCat extends TCatRessources {
         this.tc.getConnector().setProperty("address", host); 
         this.tc.getConnector().setProperty("maxThreads", "1000"); 
         this.tc.setAddDefaultWebXmlToWebapp(true);
+        
+        Connector conn = this.tc.getConnector();
+        mainUrl = (( conn.getSecure() )?"https":"http")+"://"+host+":"+port+"/";
+        
+        out(webroot.getAbsolutePath()+File.separator+"WEB-INF"+File.separator+"web.xml");
         
          rcontext= this.tc.addContext(this.tc.getHost(), "", webroot.getAbsolutePath() );
          rcontext.setPath(ba);
@@ -85,6 +98,7 @@ public class TCat extends TCatRessources {
         
         
         this.tc.initWebappDefaults(rcontext);
+        init(tc);
                
     }
     
@@ -92,7 +106,7 @@ public class TCat extends TCatRessources {
 
     public void start() throws LifecycleException { this.tc.start(); }
 
-    public void stop() throws LifecycleException { this.tc.stop(); }
+    public void stop() throws LifecycleException { this.h2dbsrv.stop(); this.tc.stop(); }
 
     public void destroy() throws LifecycleException { this.tc.destroy(); }
 
@@ -104,12 +118,69 @@ public class TCat extends TCatRessources {
         if ( file.isCrypted() ) {
             try { 
                 config.load(new ByteArrayInputStream( file.readOut().toString().getBytes() ) );
+                System.out.println("config ->|"+config+"|<-");
             } catch(IOException io){
                 return false;
             }    
         }
         return true;
     }
+    
+    public void addPublicListen(String[] ar) {
+        final String func="addPublicListen(String[] ar)";
+        printf(cl,func,1, "add public listen ->"+ar+"<-");
+        Connector conn = null; 
+        
+        printf(cl,func,1,"ar.length->"+ar.length+" ->"+ar[2]+"<-");
+        if ( ar.length < 3 || ! (  ar[2].equals("https") || ar[2].equals("ssl") || ar[2].equals("tls") ) ) {
+            conn = new Connector();
+            conn.setPort(Integer.parseInt(ar[1]));
+            conn.setProperty("address", getLocalIpFrom(ar[0])); 
+        } else {
+            if (ar.length > 3 ) { setConnectorAddOne(ar); }
+            conn = getSslConnector(ar);
+        }  
+        conn.setProperty("maxThreads", "1000"); 
+        this.tc.setConnector(conn);
+        
+        printf(cl,func,1,"->"+this.tc.noDefaultWebXmlPath()+"<-");
+        
+    }
+    
+    private Connector getSslConnector(String[] ar) {
+	Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
+	Http11NioProtocol protocol = (Http11NioProtocol) connector.getProtocolHandler();
+	
+		File keystore = getKeyStore();
+		File truststore = getTrustStore();
+		connector.setScheme("https");
+		connector.setSecure(true);
+                connector.setProperty("address", ar[0]);
+		connector.setPort(Integer.parseInt(ar[1]));
+                
+		protocol.setSSLEnabled(true);
+                
+                SSLHostConfig shost = new SSLHostConfig();
+                              shost.setProtocols("TLSv1.2,+TLSv1.3");
+                              
+                SSLHostConfigCertificate cert = new SSLHostConfigCertificate(shost, SSLHostConfigCertificate.Type.DSA);
+                                         cert.setCertificateFile(keystore.getAbsolutePath());
+                                         cert.setCertificateKeyPassword(getKeyStorePassword(keystore));
+                                         cert.setCertificateKeyAlias("server");
+                                         cert.setCertificateKeystoreType("JKS");
+                
+                               shost.addCertificate(cert);
+                               shost.setTruststoreFile(truststore.getAbsolutePath());
+                               shost.setTruststorePassword(getTrustStorePassword(truststore));
+				                
+                protocol.addSslHostConfig(shost);
+                
+	return connector;
+	
+        
+    }
+    
+    
     
     synchronized private ReadFile unpack(ReadFile file) {
         String fn = file.getFileName();
@@ -136,11 +207,15 @@ public class TCat extends TCatRessources {
     private Context  rootContext=null;
     
     private void addDefaultWebapp() {
-        if( rootContext == null && firstContext != null ) { 
+        ReadDir rd = new ReadDir(webbase+File.separator+"ROOT");
+        if ( rd.isDirectory() ) {
+            addWebapp( new ReadFile(rd.getFile()) );
+        }
+        /*if( rootContext == null && firstContext != null ) { 
             out("root set to:"+firstContext.getPath().toString() );
-            rootContext = tc.addContext("", firstContext.getPath() );
+            //rootContext = tc.addContext("", firstContext.getPath() );
             return;
-        } else { return; }
+        } else { return; }*/
     }
     public boolean addWebapp(String file) {  return addWebapp( new ReadFile(file)); }
     public boolean addWebapp(ReadFile file) { 
@@ -153,7 +228,7 @@ public class TCat extends TCatRessources {
             String fn = file.getFileName();
             if ( file.endsWith( jars )  ) {
                  nfile=file;
-                 file=unpack(file); 
+                 file=unpack(file);                  
             } 
             if ( file.endsWith(ears) ) {
                 out("file unzip ear");
@@ -170,20 +245,21 @@ public class TCat extends TCatRessources {
                             System.out.println("add ear webapp:"+f);
                             addWebapp( new ReadFile( webbase+File.separator+fn+File.separator+f));
                         }
-                    }
+                    }    
                 }
             }
+            
         }
         
         out("addWebapp ->"+file.getFQDNFileName() );
         String[] sp = file.getFQDNName().split("\\.")[0].toLowerCase().split(File.separator);
         String cont = root+sp[ sp.length -1 ];
-        if ( cont.equals("/root") ) { cont="";}
+        out("cont:"+cont+":  (pre)");
+        if ( cont.equals("/root") ) { cont="/ROOT"; }
         out("cont:"+cont+":");
         Context c =tc.addWebapp(cont, file.getFQDNFileName());
                 c.setResponseCharacterEncoding("UTF-8");
                 //c.setSessionTimeout(tc.getS);
-                
                 b=true;
                 if ( nfile != null ) registerAppChanged(nfile,c);
                 
@@ -200,20 +276,55 @@ public class TCat extends TCatRessources {
         tcapp.register(f,c);
     }
     
+    private String progVersion="0.1";
+    private String progName="Elevator";
+    String getProductVersion(){ return progVersion; }
+    String getProduct(){ return progName; }
+
+    void printVersion() {
+        System.out.println(mh+" - "+getProduct()+" / "+ getProductVersion());
+    }
+    void printUsage() {
+        System.out.println("usage()");
+        printVersion();
+        err=1;
+    }
+    
     public static void main(String[] args) throws Exception {
-        TCat  tc = new TCat( "127.0.1.10", 37373, System.getProperty("user.dir") );
+        TCat  tc = null; 
+        boolean loop = getBooleanValue( System.getProperty("com.macmario.TCAT.RestartAfterDeployment"));
+        do {
+              System.out.println("loop start");
+              tc = new TCat( "127.0.1.10", 37373, System.getProperty("user.dir") );
+              tc.addDefaultWebapp();
               if ( args.length > 0)
                   for ( int i=0; i<args.length; i++ ) {
-                  
-                      if ( args[i].equals("-app") ) {  tc.addWebapp(args[++i]); } 
-                      else if ( args[i].equals("-conn") ) {  tc.addResConnection(args[++i]); }
+                      boolean stop=false;
+                      if ( args[i].equals("-app")            ) { tc.addWebapp(args[++i]); } 
+                      else if ( args[i].equals("-conn")      ) { tc.addResConnection(args[++i]); }
+                      else if ( args[i].equals("-public")    ) { tc.addPublicListen(args[++i].split(":")); }
+                      else if ( args[i].equals("-keystore")  ) { tc.setKeyStore(args[++i]); }
+                      else if ( args[i].equals("-truststore")) { tc.setTrustStore(args[++i]); }
+                      else if ( args[i].equals("-version")   ) { tc.printVersion(); stop=true;  }
+                      else if ( args[i].equals("-d")         ) { tc.debug++; }
+                      else { 
+                          System.out.println("unknown: "+args[i]);
+                          tc.printUsage(); stop=true; 
+                      }
+                      
+                      if ( stop ) { System.exit(tc.err); }
               }
-              //tc.addDefaultWebapp();  
+                
               System.out.println(tc.getDefaultPass());
               
               tc.start();
               tc.getServer().await();
-              if( tc.tcapp != null ) { tc.tcapp.stop(); }
+              if ( getBooleanValue( System.getProperty("com.macmario.TCAT.RestartAfterDeployment")) ) { sleep(3000); }
+              if ( tc.tcapp != null ) { tc.tcapp.stop(); }
+              tc=null;
+              System.out.println("loop done");
+        } while( loop );  
+        
     }
 
 }
@@ -230,4 +341,5 @@ class sHttpServlet extends HttpServlet {
                        PrintWriter pw = resp.getWriter();
                        pw.println(this.tc.rWelcome);
                    }
-};
+}
+
