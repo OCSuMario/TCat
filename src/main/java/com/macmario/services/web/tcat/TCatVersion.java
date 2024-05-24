@@ -25,7 +25,9 @@ abstract public class TCatVersion extends com.macmario.general.Version {
     
     public int getInt(String s){
         int ret=-1;
-        try { ret=Integer.getInteger(s); }catch(NullPointerException|NumberFormatException ne){}
+        try { ret=Integer.parseInt(s); }catch(NullPointerException|NumberFormatException ne){}
         return ret;
     }
+    
+    public String getWorkingDir() { return System.getProperty("user.dir"); }
 }
