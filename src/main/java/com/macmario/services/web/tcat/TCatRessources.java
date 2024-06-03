@@ -37,6 +37,8 @@ class TCatRessources extends TCatVersion {
     TCatDb tcatdb;
     TCatCert cert;
     
+    static String _defHost="127.0.1.10";
+    static int    _defPort=37373;
     
     File webbase;
     File webroot;
@@ -166,33 +168,21 @@ class TCatRessources extends TCatVersion {
         
     }
     
+       
     TCatConnector getConnector(Properties ar) {
-        TCatConnector conn = new TCatConnector(tcat);
-            conn.setDiscardFacades(false);
-            
-            String   PO=ar.getProperty("PORT", "37373");
-            String   HO=ar.getProperty("HOST");
-            String  PUB=ar.getProperty("PUBLIC", "0");
-            String  maxThreads=ar.getProperty("MAXTHREADS", "1000");
-            if ( HO == null ) {
-                if ( PUB.equals("1") ) {
-                    HO=getLocalIpFrom(getHostname());
-                } else {
-                    HO="localhost";
-                }
-            }
-            
-            conn.setPort(Integer.parseInt(PO));
-            conn.setProperty("address", HO); 
-            conn.setProperty("maxThreads", maxThreads);
-            
+       TCatConnector conn = TCatConnector.getInstance(tcat,ar);     
        return conn;     
     }
     
     TCatConnector getSslConnector(Properties ar) {
+        ar.put("SECURE", "TRUE");
+        TCatConnector connector = TCatConnector.getInstance(tcat, "org.apache.coyote.http11.Http11NioProtocol", ar);
         
-        TCatConnector connector = new TCatConnector("org.apache.coyote.http11.Http11NioProtocol", tcat);
-                  
+        return connector; 
+    }
+    
+    Object ttp(Properties ar) {
+        TCatConnector connector = TCatConnector.getInstance(tcat, "org.apache.coyote.http11.Http11NioProtocol", ar);
 	Http11NioProtocol protocol = (Http11NioProtocol) connector.getProtocolHandler();
         
         String   PO=ar.getProperty("PORT", "37373");
@@ -206,17 +196,17 @@ class TCatRessources extends TCatVersion {
         String  Cipher=ar.getProperty("CIPHER;", "");
         String  maxThreads=ar.getProperty("MAXTHREADS", "1000");
         if (   Trust.isEmpty()           ) { Trust= cert.getDefaultTrustStore().getAbsolutePath(); }
-        if ( TrustPW.equals("<default>") ) { TrustPW="changeit"; }
-        if (  KeysPW.equals("<default>") ) {  KeysPW=getDefaultPass(); }
+        if ( TrustPW.isEmpty() || TrustPW.equals("<default>") ) { TrustPW="changeit"; }
+        if ( KeysPW.isEmpty()  ||  KeysPW.equals("<default>") ) {  KeysPW=getDefaultPass(); }
         
-        log(4,"HOST "+HO+":"+PO+" PROT->"+PROT+" Cipher:"+Cipher+":\n\t   KeyFile:"+Keys+":\n\t TrustFile:"+Trust+":");
+        log(4,"HOST "+HO+":"+PO+" PROT->"+PROT+" Cipher:"+Cipher+":\n\t   KeyFile:"+Keys+":  KeyPW:"+KeysPW+": \n\t TrustFile:"+Trust+":  TrustPW:"+TrustPW+":" );
         
         log(4,"keys:"+Keys+":");
         File   keystore = new File(Keys);
-        cert.openKeystore(keystore, KeysPW);
+        //cert.openKeystore(keystore, KeysPW);
         log(4,"trusts:"+Trust+":");
         File truststore = new File(Trust);
-        cert.openTrustStore(truststore, TrustPW);
+        //cert.openTrustStore(truststore, TrustPW);
         
         connector.setScheme("https");
 		connector.setSecure(true);
@@ -302,7 +292,7 @@ class TCatRessources extends TCatVersion {
     }*/
     
     TCatConnector createSslConnector(){
-           TCatConnector httpsConnector = new TCatConnector(tcat);
+           TCatConnector httpsConnector = TCatConnector.getInstance(tcat,null);
            httpsConnector.setPort(443);
            httpsConnector.setSecure(true);
            httpsConnector.setScheme("https");
@@ -311,9 +301,9 @@ class TCatRessources extends TCatVersion {
            TCatSSLHostConfig sslConfig = new TCatSSLHostConfig(tcat);
 
            TCatSSLHostConfigCertificate certConfig = new TCatSSLHostConfigCertificate(sslConfig, TCatSSLHostConfigCertificate.Type.RSA,tcat);
-           certConfig.setCertificateKeystoreFile("/root/.keystore");
+           certConfig.setCertificateKeystoreFile(".keystore");
            certConfig.setCertificateKeystorePassword("changeit");
-           certConfig.setCertificateKeyAlias("mykeyalias");
+           certConfig.setCertificateKeyAlias("server");
            sslConfig.addCertificate(certConfig);
 
            httpsConnector.addSslHostConfig(sslConfig);

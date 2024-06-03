@@ -217,22 +217,24 @@ class TCatCert extends TCatVersion {
        }
    }
    public KeyStore openKeystore(String file, String pass) { return openKeystore(new File(file),pass); }
-   public KeyStore openKeystore(File file, String pass) {
+   public KeyStore openKeystore(File file, String pw) {
        file=(file == null )? new File(".keystore"):file;
-       pass=(pass == null || pass.isEmpty() )? "changeit":pass;
+       pw=(pw == null || pw.isEmpty() )? "changeit":pw;
        KeyStore kst = null;
-       log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  =>|"+pass+"|<=");
+       log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  =>|"+pw+"|<=");
        try {
             kst = KeyStore.getInstance(this.getStoreAlg());
        
             if ( file.exists() ) {
-                log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  like to load");
-                kst.load(new FileInputStream(file), pass.toCharArray());
+                log(3,"INFO: Keystore:"+file.getAbsolutePath()+":  like to load");
+                kst.load(new FileInputStream(file), pw.toCharArray());
+                log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  loaded");
             } else {
                 log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  empty - create ");
                 kst.load(null,null);
-                updateKeyStoreWithDefault(kst,file, pass);
-                kst.store(new FileOutputStream(file), pass.toCharArray());
+                updateKeyStoreWithDefault(kst,file, pw);
+                kst.store(new FileOutputStream(file), pw.toCharArray());
+                log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  created");
             }
        } catch(KeyStoreException|IOException|NoSuchAlgorithmException|CertificateException|NullPointerException ne){
            log(1,"ERROR:"+ne.getMessage()+" - openKeystore fail");
@@ -343,26 +345,31 @@ class TCatCert extends TCatVersion {
     
     void createKeyStore(ReadFile fn, String pass) {
       try  {
-        KeyStore ks = KeyStore.getInstance("JKS");
+        KeyStore ks = KeyStore.getInstance(this.getStoreAlg());
         if ( ! fn.isReadableFile() ) {
             ks.store(fn.getOutStream(), pass.toCharArray());
         }
       }catch ( KeyStoreException
               | java.io.IOException 
               |java.security.NoSuchAlgorithmException 
-              |java.security.cert.CertificateException kse) {}  
+              |java.security.cert.CertificateException kse) {
+          log(1, "ERROR: couldn't create KeyStore "+fn.getFQDNName()+" - "+kse.getMessage());
+      }  
         
     }
     
     KeyStore loadKeyStore(ReadFile fn, String pass) {
         try {
-         KeyStore ks = KeyStore.getInstance("JKS");
+         KeyStore ks = KeyStore.getInstance(this.getStoreAlg());
                   ks.load(fn.getInputStream(), pass.toCharArray());
          return ks;
         } catch( KeyStoreException
               | java.io.IOException 
               |java.security.NoSuchAlgorithmException 
-              |java.security.cert.CertificateException kse ) { return null; }
+              |java.security.cert.CertificateException kse ) { 
+            log(1, "ERROR: couldn't load KeyStore "+fn.getFQDNName()+" - "+kse.getMessage());
+            return null; 
+        }
     }
     
    public void log(int deb, String msg){ super.log(deb, "TCATCert::"+msg); }

@@ -282,7 +282,7 @@ public class TCat extends TCatRessources {
         try { 
           //do {
               System.out.println("loop start");
-              tc = new TCat( "127.0.1.10", 37373, System.getProperty("user.dir") );
+              tc = new TCat( _defHost, _defPort, System.getProperty("user.dir") );
               tc.addDefaultWebapp();
               if ( args.length > 0)
                   for ( int i=0; i<args.length; i++ ) {
