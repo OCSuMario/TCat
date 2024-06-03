@@ -5,7 +5,11 @@
 package com.macmario.services.web.tcat;
 
 import com.macmario.general.MyVersion;
+import com.macmario.io.file.ReadDir;
+import com.macmario.io.file.ReadFile;
 import com.macmario.io.file.SecFile;
+import com.macmario.io.file.XMLReadFile;
+import jakarta.servlet.http.HttpServlet;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -18,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Properties;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -26,6 +31,8 @@ import org.apache.catalina.Context;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
@@ -95,6 +102,146 @@ class TCatRessources extends TCatVersion {
          System.out.println(info);
     }
     
+    public ArrayList<String[]> registerServletFromWebXml(String file) { return registerServletFromWebXml(new ReadFile(file)); }
+    public ArrayList<String[]> registerServletFromWebXml(ReadFile file) {
+        ArrayList<String[]> mp = new ArrayList<>();
+        if ( file.isReadableFile() ) {
+            XMLReadFile xml = new XMLReadFile(file.getFile());
+            NodeList     nl = xml.getNodeList("servlet");
+            NodeList     ml = xml.getNodeList("servlet-mapping");
+            
+            if ( nl != null && nl.getLength()>0 )
+                for ( int i=0; i<nl.getLength(); i++ ){
+                    log(4, "loop nl["+i+"]");
+                    String[] sp = new String[] { "","","" };
+                    Node n = nl.item(i);
+                    Node m = ml.item(i);
+                    log(1, "Node =>"+n.getNodeName()+"  and "+m.getNodeName() );
+                    NodeList nls = n.getChildNodes();
+                    NodeList mls = m.getChildNodes();
+                    for ( int j=0; j<nls.getLength(); j++ ){
+                        log(4, "loop ml["+j+"]");
+                        Node ns = nls.item(j);
+                        Node ms = mls.item(j);
+                        log(2, "Node Slave ns=>"+ns.getNodeName()+"<=>"+ns.getTextContent()+"<=");
+                        if      ( ns.getNodeName().equals("servlet-name")  ) { sp[1]=ns.getTextContent(); }
+                        else if ( ns.getNodeName().equals("servlet-class") ) { sp[2]=ns.getTextContent(); }
+                        
+                        log(2, "Node Slave ms=>"+ms.getNodeName()+"<=>"+ms.getTextContent()+"<=");
+                        if ( ms.getNodeName().equals("url-pattern")  ) { sp[0]=ms.getTextContent(); }
+                        log(3,"sp set =>"+sp[0]+"<->"+sp[1]+"<->"+sp[2]+"<=");
+                    }
+                    log(2,"add sp =>"+sp);
+                    mp.add(sp);
+                }
+        }
+        log(2,"return =>"+mp.toString());
+        return mp;
+    }
+    
+    public boolean addWebapp(String file) {  return addWebapp( new ReadFile(file)); }
+    public boolean addWebapp(ReadFile file) { 
+        boolean b=false;
+        ReadFile nfile=null;
+        
+        String[] jars = new String[]{ ".jar", ".war" };
+        String[] ears = new String[]{ ".ear" };
+        if ( file.isReadableFile() ) {
+            String fn = file.getFileName();
+            if ( file.endsWith( jars )  ) {
+                 nfile=file;
+                 file=unpack(file);                  
+            } 
+            if ( file.endsWith(ears) ) {
+                log(3,"file unzip ear");
+                fn=file.getFileName().substring(0, fn.length()-4).split("-")[0];
+                log(2," file unzip war to "+webbase+File.separator+fn);
+                
+                if ( file.extractZip(webbase+File.separator+fn) ) {
+                    file = new ReadFile(webbase+File.separator+fn);
+                    
+                    ReadDir rd = new ReadDir(webbase+File.separator+fn);
+                    if ( rd.isDirectory() ) {
+                        String[] files = rd.getFiles(".war$");
+                        for( String f : files ) {
+                            log(2,"add ear webapp:"+f);
+                            addWebapp( new ReadFile( webbase+File.separator+fn+File.separator+f));
+                        }
+                    }    
+                }
+            }
+            
+        }
+        
+        log(2,"addWebapp ->"+file.getFQDNFileName() );
+        String[] sp = file.getFQDNName().split("\\.")[0].toLowerCase().split(File.separator);
+        String cont = root+sp[ sp.length -1 ];
+        log(2,"cont:"+cont+":  (pre)");
+        if ( cont.equals("/root") ) { cont="/ROOT"; }
+        log(2,"cont:"+cont+":");
+        Context c =tc.addWebapp(cont, file.getFQDNFileName());
+                c.setResponseCharacterEncoding("UTF-8");
+                //c.setSessionTimeout(tc.getS);
+                b=true;
+                if ( nfile != null ) registerAppChanged(nfile,c);
+                final String webxml = file.getFQDNFileName()+ File.separator+"WEB-INF"+File.separator + "web.xml";
+                log(2,"web.xml =>"+webxml);
+                for ( String[] mp : registerServletFromWebXml(webxml)) {
+                        String slet=mp[0]; 
+                        String rt=mp[1];
+                        HttpServlet serv = getNewClass(mp[2]);
+                        if ( serv != null )
+                             tc.addServlet(cont+rt, slet, serv);
+                }
+        
+        return b;
+    }
+    
+     TCatAppChecker tcapp=null;
+    void registerAppChanged(ReadFile f, Context c){
+        if ( tcapp == null ) {
+             tcapp = new TCatAppChecker(tcat); 
+             tcapp.start();
+        }
+        tcapp.register(f,c);
+    }
+    
+    synchronized ReadFile unpack(ReadFile file) {
+        String fn = file.getFileName();
+        fn=fn.substring(0, fn.length()-4).split("-")[0];
+        out(" file unzip war to "+webbase+File.separator+fn);
+                
+        if ( file.extractZip(webbase+File.separator+fn) ) {
+             return new ReadFile(webbase+File.separator+fn);
+        }
+        return file;
+    }
+    
+    synchronized public void redeployApp(ReadFile f, Context c) {
+        if ( f.isReadableFile() ) {
+            f=unpack(f);
+            c.reload();
+        }
+    }
+    
+    private boolean _couldRedeploy=false;
+    boolean allowRedeploy() { return _couldRedeploy; }
+    
+    private Context firstContext=null;
+    private Context  rootContext=null;
+    
+    void addDefaultWebapp() {
+        ReadDir rd = new ReadDir(webbase+File.separator+"ROOT");
+        if ( rd.isDirectory() ) {
+            addWebapp( new ReadFile(rd.getFile()) );
+        }
+        /*if( rootContext == null && firstContext != null ) { 
+            out("root set to:"+firstContext.getPath().toString() );
+            //rootContext = tc.addContext("", firstContext.getPath() );
+            return;
+        } else { return; }*/
+    }
+    
     public boolean addResConnection(String file) { return addResConnection(new SecFile(file)); }
     public boolean addResConnection(SecFile file) {
         if ( ! file.isReadableFile() ) { return false; }
@@ -125,7 +272,7 @@ class TCatRessources extends TCatVersion {
             if ( conf != null ) {
                 log(1,"config["+max+"] ->|"+conf+"|<-"); 
                 if ( conf.getProperty("PORT") != null ) {
-                    TCatConnector conn=null;
+                    TCatConnector conn;
                     if ( conf.getProperty("KEYSTORE") != null ) {
                           conn = getSslConnector(conf);
                     } else {
@@ -148,7 +295,6 @@ class TCatRessources extends TCatVersion {
         printf(cl,func,1,"ar.length->"+ar.length+" ->"+ar[2]+"<-");
         if ( ar.length < 3 || ! (  ar[2].equals("https") || ar[2].equals("ssl") || ar[2].equals("tls") ) ) {
             conn = this.getConnector(prop);
-            
         } else {
             if (ar.length > 3 ) { setConnectorAddOne(ar); }
             prop.setProperty("TRUSTSTORE", getJavaCacerts().getAbsolutePath());
@@ -156,9 +302,6 @@ class TCatRessources extends TCatVersion {
             prop.setProperty("KEYSTORE", ".keyfile.jks");
             prop.setProperty("KEYSTOREPW", getDefaultPass());
             conn = this.getSslConnector(prop);
-            
-            /*conn = getSslConnector(ar);
-            conn.setDiscardFacades(false);*/
         }  
         printf(cl,func,1,"add connector to server");
         
@@ -168,6 +311,15 @@ class TCatRessources extends TCatVersion {
         
     }
     
+    HttpServlet getNewClass(String cname) {
+        HttpServlet o = null;
+        try {            
+                    o=(HttpServlet)Class.forName(cname).newInstance();          
+        } catch(ClassNotFoundException|NullPointerException|IllegalAccessException|InstantiationException ce){
+            printf(cl,"getNewClass",1,"class loadinng Error - "+ce.getMessage());
+        }
+        return o;
+    }
        
     TCatConnector getConnector(Properties ar) {
        TCatConnector conn = TCatConnector.getInstance(tcat,ar);     
@@ -180,137 +332,7 @@ class TCatRessources extends TCatVersion {
         
         return connector; 
     }
-    
-    Object ttp(Properties ar) {
-        TCatConnector connector = TCatConnector.getInstance(tcat, "org.apache.coyote.http11.Http11NioProtocol", ar);
-	Http11NioProtocol protocol = (Http11NioProtocol) connector.getProtocolHandler();
-        
-        String   PO=ar.getProperty("PORT", "37373");
-        String   HO=ar.getProperty("HOST", "localhost");
-        String  PUB=ar.getProperty("PUBLIC", "0");
-        String PROT=ar.getProperty("PROTOCOL", "TLS");
-        String   Trust=ar.getProperty("TRUSTSTORE", cert.getDefaultTrustStore().getAbsolutePath());
-        String TrustPW=ar.getProperty("TRUSTSTOREPW", "changeit");
-        String    Keys=ar.getProperty("KEYSTORE", cert.getDefaultKeyStore().getAbsolutePath());
-        String  KeysPW=ar.getProperty("KEYSTOREPW", getDefaultPass());
-        String  Cipher=ar.getProperty("CIPHER;", "");
-        String  maxThreads=ar.getProperty("MAXTHREADS", "1000");
-        if (   Trust.isEmpty()           ) { Trust= cert.getDefaultTrustStore().getAbsolutePath(); }
-        if ( TrustPW.isEmpty() || TrustPW.equals("<default>") ) { TrustPW="changeit"; }
-        if ( KeysPW.isEmpty()  ||  KeysPW.equals("<default>") ) {  KeysPW=getDefaultPass(); }
-        
-        log(4,"HOST "+HO+":"+PO+" PROT->"+PROT+" Cipher:"+Cipher+":\n\t   KeyFile:"+Keys+":  KeyPW:"+KeysPW+": \n\t TrustFile:"+Trust+":  TrustPW:"+TrustPW+":" );
-        
-        log(4,"keys:"+Keys+":");
-        File   keystore = new File(Keys);
-        //cert.openKeystore(keystore, KeysPW);
-        log(4,"trusts:"+Trust+":");
-        File truststore = new File(Trust);
-        //cert.openTrustStore(truststore, TrustPW);
-        
-        connector.setScheme("https");
-		connector.setSecure(true);
-                connector.setProperty("SSLEnabled", "true");
-                connector.setProperty("address", HO);
-		connector.setPort(getInt(PO));
-                
-		protocol.setSSLEnabled(true);
-        
-                log(4,"TLS defaults are set - define cert");     
-                TCatSSLHostConfig  shost = new TCatSSLHostConfig(tcat);
-                               //shost.setSslProtocol(PROT); <- Cipher
-                               //shost.setProtocols(PROT);
-        if (!Cipher.isEmpty()) shost.setCiphers(Cipher);
-                              
-                TCatSSLHostConfigCertificate scert = new TCatSSLHostConfigCertificate(shost, TCatSSLHostConfigCertificate.Type.DSA, tcat);
-                                         KeyStore ks = cert.openKeystore(keystore, KeysPW);
-                                                       //cert.updateKeyStoreWithDefault(ks,keystore, KeysPW);
-                                         scert.setCertificateKeystore(ks);
-                                         //scert.setCertificateFile(keystore.getAbsolutePath());
-                                         //scert.setCertificateKeyPassword(KeysPW);
-                                         scert.setCertificateKeyAlias(cert.getDefaultAlias());
-                                         scert.setCertificateKeystoreType(cert.getStoreAlg());
-                                         
-                                         
-                log(4,"add now Certificate to SSLHostConfig");
-                               shost.addCertificate(scert);
-                log(4,"add now TrustStore to SSLHostConfig");
-                               shost.setTruststoreFile(truststore.getAbsolutePath());
-                               shost.setTruststorePassword(TrustPW);
-	
-                log(4,"add now SSLHostConfig");
-                               
-                protocol.addSslHostConfig(shost);
-                
-                connector.setProperty("maxThreads", maxThreads);
-                
-                log(4,"return SSLConnector");
-        return connector;
-    }
-    
-    /*Connector getSslConnector(String[] ar) {
-	Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
-	Http11NioProtocol protocol = (Http11NioProtocol) connector.getProtocolHandler();
-        
-        log(1, "parameter:"+ar);
-	
-		File keystore = cert.getKeyStore();
-            log(2,"keystore:"+keystore);
-		File truststore = cert.getTrustStore();
-            log(2,"truststore:"+truststore);    
-		connector.setScheme("https");
-		connector.setSecure(true);
-                connector.setProperty("SSLEnabled", "true");
-                connector.setProperty("address", ar[0]);
-		connector.setPort(getInt(ar[1]));
-                
-		protocol.setSSLEnabled(true);
-                
-                log(4,"TLS defaults are set - define cert");     
-                SSLHostConfig shost = new SSLHostConfig();
-                              shost.setProtocols("TLSv1.2,+TLSv1.3");
-                              
-                SSLHostConfigCertificate scert = new SSLHostConfigCertificate(shost, SSLHostConfigCertificate.Type.DSA);
-                                         scert.setCertificateFile(keystore.getAbsolutePath());
-                                         scert.setCertificateKeyPassword(cert.getKeyStorePassword(keystore));
-                                         scert.setCertificateKeyAlias("server");
-                                         scert.setCertificateKeystoreType("JKS");
-                                         
-                log(4,"add now Certificate to SSLHostConfig");
-                               shost.addCertificate(scert);
-                log(4,"add now TrustStore to SSLHostConfig");
-                               shost.setTruststoreFile(truststore.getAbsolutePath());
-                               shost.setTruststorePassword(cert.getTrustStorePassword(truststore));
-	
-                log(4,"add now SSLHostConfig");
-                               
-                protocol.addSslHostConfig(shost);
-                
-	return connector;
-	
-        
-    }*/
-    
-    TCatConnector createSslConnector(){
-           TCatConnector httpsConnector = TCatConnector.getInstance(tcat,null);
-           httpsConnector.setPort(443);
-           httpsConnector.setSecure(true);
-           httpsConnector.setScheme("https");
-           //httpsConnector.setAttribute("SSLEnabled", "true");
-           //httpsConnector.setProperty("SSLEnabled", "true");
-           TCatSSLHostConfig sslConfig = new TCatSSLHostConfig(tcat);
-
-           TCatSSLHostConfigCertificate certConfig = new TCatSSLHostConfigCertificate(sslConfig, TCatSSLHostConfigCertificate.Type.RSA,tcat);
-           certConfig.setCertificateKeystoreFile(".keystore");
-           certConfig.setCertificateKeystorePassword("changeit");
-           certConfig.setCertificateKeyAlias("server");
-           sslConfig.addCertificate(certConfig);
-
-           httpsConnector.addSslHostConfig(sslConfig);
-
-           return httpsConnector;
-    }
-    
+           
     InputStream getFromRessource(String res) {
          return getClass().getClassLoader().getResourceAsStream(res);
     }

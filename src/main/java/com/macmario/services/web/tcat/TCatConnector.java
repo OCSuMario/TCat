@@ -46,7 +46,7 @@ public class TCatConnector extends org.apache.catalina.connector.Connector{
         ar=updateHost(ar);
         setHost( ar.getProperty("HOST", tcat._defHost), tcat.getInt(ar.getProperty("PORT", ""+tcat._defPort)));
         
-        //Connector connector = new Connector();
+        log(4, "add new SSL Listener "+ar);
             Http11NioProtocol protocol = (Http11NioProtocol) getProtocolHandler();
 
             this.Keys=ar.getProperty("KEYSTORE", cert.getDefaultKeyStore().getAbsolutePath());
@@ -54,7 +54,9 @@ public class TCatConnector extends org.apache.catalina.connector.Connector{
             if ( KeysPW.isEmpty()  ||  KeysPW.equals("<default>") ) { KeysPW  = tcat.getDefaultPass(); }
             
             File keystore = new File(Keys); //(new ReadFile("store")).getFile();
-            
+            KeyStore kst = cert.openKeystore(keystore, KeysPW);
+        log(4, "open keystore "+kst);
+        
              this.Trust=ar.getProperty("TRUSTSTORE", getJavaCacerts().getAbsolutePath());
              if ( this.Trust.isEmpty() ) { this.Trust=getJavaCacerts().getAbsolutePath();}
              log(1, "truststore config =>"+this.Trust+"<=");
@@ -62,7 +64,9 @@ public class TCatConnector extends org.apache.catalina.connector.Connector{
              if ( TrustPW.isEmpty() || TrustPW.equals("<default>") ) { TrustPW = "changeit"; }
         
             File truststore = new File(this.Trust); //(new ReadFile("store")).getFile();
-            
+            kst = cert.openTrustStore(truststore, TrustPW);
+        log(4, "open trusstore "+kst);    
+        
             setScheme("https");
             setSecure(true);           
             protocol.setSSLEnabled(true);
@@ -81,11 +85,12 @@ public class TCatConnector extends org.apache.catalina.connector.Connector{
 
             sslHostConfig.addCertificate(sslCertificate);
             protocol.addSslHostConfig(sslHostConfig);
+        log(4, "listern config done "+this.toString());        
     }
     
     public void config(Properties ar) {
         ar=updateHost(ar);
-        setHost( ar.getProperty("HOST", "localhost"), tcat.getInt(ar.getProperty("PORT", "37373")));
+        setHost( ar.getProperty("HOST", tcat._defHost), tcat.getInt(ar.getProperty("PORT", ""+tcat._defPort)));
         
         setDiscardFacades(false);
     }
@@ -98,7 +103,7 @@ public class TCatConnector extends org.apache.catalina.connector.Connector{
                 if ( PUB.equals("1") ) {
                     ar.put("HOST",tcat.getLocalIpFrom(tcat.getHostname()));
                 } else {
-                    ar.put("HOST","localhost");
+                    ar.put("HOST",tcat._defHost);
                 }
         }
         return ar;
@@ -107,6 +112,7 @@ public class TCatConnector extends org.apache.catalina.connector.Connector{
    
     
     private void setHost(String host, int port) {
+        log(2, "update host with ->"+host+":"+port+"<-");
         setProperty("address", host);
 	setPort(port);
     }

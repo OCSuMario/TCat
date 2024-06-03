@@ -198,10 +198,12 @@ class TCatCert extends TCatVersion {
        if ( ! file.equals(getDefaultTrustStore())) {
            try { 
                 kst.load(new FileInputStream(def), this.getDefaultTrustStorePass().toCharArray());
-           } catch(IOException|NoSuchAlgorithmException|CertificateException|NullPointerException ne){
+                
+                kst.setCertificateEntry(alias, ca);
+           } catch(IOException|NoSuchAlgorithmException|CertificateException|KeyStoreException|NullPointerException ne){
                log(1,"ERROR:"+ne.getMessage()+" - openTrustStore");
            }       
-       }
+       } 
        return kst;
    }
    
