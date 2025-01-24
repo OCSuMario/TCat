@@ -1,10 +1,5 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- */
-
 package com.macmario.services.web.tcat;
 
-import com.macmario.io.file.ReadDir;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,21 +7,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Server;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.tomcat.util.descriptor.web.ErrorPage;
-import com.macmario.io.file.ReadFile;
-import com.macmario.io.file.XMLReadFile;
-import java.util.ArrayList;
-import java.util.Properties;
 import org.apache.catalina.Globals;
 import org.apache.catalina.WebResourceRoot;
 import org.apache.catalina.connector.Connector;
 import org.apache.catalina.webresources.StandardRoot;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 /**
  *
@@ -35,12 +23,14 @@ import org.w3c.dom.NodeList;
 public class TCat extends TCatRessources {
     
     
-    public TCat( String host, int port, String ba ) {
+    private TCat(String ba) {
         super();
         this.cl="TCat";
-        tcat=this;
-        cert = new TCatCert(tcat);
-        tcatdb=new TCatDb(tcat);
+        init(this);
+    }
+    public TCat( String host, int port, String ba ) {
+        this(ba);
+        
         this.base   =new File(ba);
         this.webbase=new File(ba+File.separator+"webapp");
         this.webroot = new File( webbase.getAbsolutePath()+File.separator+"ROOT");
@@ -53,13 +43,14 @@ public class TCat extends TCatRessources {
         this.tc.setBaseDir(ba);
         this.tc.getConnector().setPort(port);
         this.tc.getConnector().setProperty("address", host); 
-        this.tc.getConnector().setProperty("maxThreads", "1000"); 
+        this.tc.getConnector().setProperty("maxThreads", "100"); 
         this.tc.setAddDefaultWebXmlToWebapp(true);
         
         Connector conn = this.tc.getConnector();
         mainUrl = (( conn.getSecure() )?"https":"http")+"://"+host+":"+port+"/";
         log(1,"mainURL ->"+mainUrl+"<-");
         
+       
         final String webxml = webroot.getAbsolutePath()+File.separator+"WEB-INF"+File.separator+"web.xml";
         out(webxml);
         
@@ -80,31 +71,25 @@ public class TCat extends TCatRessources {
               
         String slet="S1";
         
-        //this.tc.addServlet(root+"app", slet, servlet);
         this.tc.addServlet("", slet, servlet);
-        //this.tc.addServlet(root+"*", slet, servlet);
-        //rcontext.addServletMappingDecoded(root+"go", slet );
-        //rcontext.addServletMappingDecoded(root+"*", "index");
-        
-        /*for ( String[] mp : registerServletFromWebXml(webxml)) {
-                 slet=mp[0]; 
-            String rt=mp[1];
-            HttpServlet serv = getNewClass(mp[2]);
-            if ( serv != null )
-             this.tc.addServlet(rt, slet, serv);
-        }*/
         
         this.tc.initWebappDefaults(rcontext);
         //rcontext.addServletMappingDecoded("/*", "ROOT");
         init(tc);
+        
+        proxy.init();
                
     }
     
     //public void init() throws LifecycleException { this.tc.init(); }
 
-    public void start() throws LifecycleException { this.tc.start(); }
+    public void start() throws LifecycleException { this.tc.start(); this.proxy.start(); }
+    //public void start() throws LifecycleException { this.tc.start(); this.nProxy.start(); this.proxy.start(); }
+    //public void start() throws LifecycleException { this.tc.start(); this.nProxy.start();  }
 
-    public void stop() throws LifecycleException { tcatdb.h2dbsrv.stop(); this.tc.stop(); }
+    public void stop() throws LifecycleException { proxy.stop(); tcatdb.h2dbsrv.stop(); this.tc.stop(); }
+    //public void stop() throws LifecycleException { nProxy.stop(); proxy.setClosed(); tcatdb.h2dbsrv.stop(); this.tc.stop(); }
+    //public void stop() throws LifecycleException { nProxy.stop(); tcatdb.h2dbsrv.stop(); this.tc.stop(); }
 
     public void destroy() throws LifecycleException { this.tc.destroy(); }
 
@@ -124,27 +109,43 @@ public class TCat extends TCatRessources {
         err=1;
     }
     
+    @Override
     public void log(int deb, String msg){ super.log(deb, "TCAT::"+msg); }
+    
+    public static TCat getInstance(){
+         TCat tc = new TCat(System.getProperty("user.dir"));
+         
+         return tc;
+    }
     
     public static void main(String[] args) throws Exception {
         TCat  tc = null; 
         boolean loop = getBooleanValue( System.getProperty("com.macmario.TCAT.RestartAfterDeployment"));
+        int deb=0;
+        if ( args.length > 0) {
+            for (String arg : args) {
+                 if (arg.equals("-d"))  deb++;
+            }
+        }
+        
         try { 
           //do {
               System.out.println("loop start");
               tc = new TCat( _defHost, _defPort, System.getProperty("user.dir") );
+              if ( tc.debug< deb ) tc.debug=deb;
               tc.addDefaultWebapp();
               if ( args.length > 0)
                   for ( int i=0; i<args.length; i++ ) {
                       tc.log(2, "verify parameter:"+i+" ->"+args[i]+"<-");
                       boolean stop=false;
                       if ( args[i].equals("-app")            ) { tc.addWebapp(args[++i]); } 
+                      else if ( args[i].equals("-conf")      ) { tc.setConfigDir(args[++i]); }
                       else if ( args[i].equals("-conn")      ) { tc.addResConnection(args[++i]); }
                       else if ( args[i].equals("-public")    ) { tc.addPublicListen(args[++i].split(":")); }
                       else if ( args[i].equals("-keystore")  ) { tc.cert.setKeyStore(args[++i]); }
                       else if ( args[i].equals("-truststore")) { tc.cert.setTrustStore(args[++i]); }
                       else if ( args[i].equals("-version")   ) { tc.printVersion(); stop=true;  }
-                      else if ( args[i].equals("-d")         ) { tc.debug++; }
+                      else if ( args[i].equals("-d")         ) {  }
                       else if ( args[i].equals("-defaultPass")){ System.out.println(tc.getDefaultPass()); stop=true; }
                       else { 
                           System.out.println("unknown: "+args[i]);

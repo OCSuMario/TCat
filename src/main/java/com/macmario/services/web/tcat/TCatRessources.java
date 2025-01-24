@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.macmario.services.web.tcat;
 
 import com.macmario.general.MyVersion;
@@ -9,6 +5,9 @@ import com.macmario.io.file.ReadDir;
 import com.macmario.io.file.ReadFile;
 import com.macmario.io.file.SecFile;
 import com.macmario.io.file.XMLReadFile;
+//import com.macmario.services.web.tcat.proxy.TCatNProxyServer;
+//import com.macmario.services.web.tcat.proxy.TCatNProxy;
+import com.macmario.services.web.tcat.proxy.TCatProxy;
 import jakarta.servlet.http.HttpServlet;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -23,13 +22,15 @@ import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Properties;
+import javax.net.ssl.TrustManager;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.catalina.Context;
+import org.apache.catalina.Engine;
 import org.apache.catalina.startup.Tomcat;
-import org.apache.coyote.http11.Http11NioProtocol;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -43,10 +44,14 @@ class TCatRessources extends TCatVersion {
     TCat tcat;
     TCatDb tcatdb;
     TCatCert cert;
+    TCatProxy proxy;
+    //TCatNProxyServer proxy;
+    //TCatNProxy nProxy;
     
     static String _defHost="127.0.1.10";
     static int    _defPort=37373;
     
+   
     File webbase;
     File webroot;
     
@@ -59,7 +64,7 @@ class TCatRessources extends TCatVersion {
    
     Properties    config = new Properties();
     Properties[] _config = new Properties[10];
-    String mainUrl;
+    public String mainUrl;
     String cl;
     String root="/";
     
@@ -71,23 +76,45 @@ class TCatRessources extends TCatVersion {
         System.setProperty("com.macmario.TCAT.RestartAfterDeployment", "true");
         System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE",  "true");
         System.setProperty("tomcat.util.scan.StandardJarScanFilter.jarsToSkip", "*.jar");
+        System.setProperty("org.apache.catalina.logger.FileLogger", "true");
+        System.setProperty("jdk.tls.acknowledgeCloseNotify", "true");
         
         this.cl="TCatRessources";
+        this._configDir = new ReadDir( getConfigDir() );
+        this._logDir    = new ReadDir( getLogsDir() );
+        initLogger();
+        
+    }
+    
+    void init(TCat tcat) {
+        this.tcat=tcat;
+        initLogger();
+        
+        
+        cert  = new TCatCert(tcat);
+        tcatdb= new TCatDb(tcat);
+        proxy = new TCatProxy(tcat);
+        // proxy = new TCatNProxyServer(tcat);
+        //nProxy = new TCatNProxy(tcat);
     }
     
     void init(Tomcat tc) {
         log("FINEST:  init start");
         this.tc=tc;
+        Engine engine = this.tc.getEngine();
+        engine.setDefaultHost(tc.getHost().getName());
         try {
            if ( System.getProperty("h2.bindAddress") == null )
                 System.setProperty("h2.bindAddress",tc.getHost().getName());
            //System.setProperty("h2.jdbc", "jdbc:h2:tcp://sa:"+getDefaultPass()+"@"+System.getProperty("h2.bindAddress")+":"+(tc.getConnector().getPort()+1)+"/"+getWorkingDir()+"/data");
            log(3,"bindAddress ->"+System.getProperty("h2.bindAddress"));
            log(3,"bindPort ->"+tc.getConnector().getPort());
-           //log(1,"jdbc ->"+System.getProperty("h2.jdbc"));
-           tcatdb.updateJDBC(("jdbc:h2:tcp://sa:"+getDefaultPass()+"@"+System.getProperty("h2.bindAddress")+":"+(tc.getConnector().getPort()+1)+"/"+getWorkingDir()+"/data"));
+           tcatdb.updateJDBC(("jdbc:h2:tcp://sa:"+getDefaultPass()+"@"+System.getProperty("h2.bindAddress")+":"+(tc.getConnector().getPort()+1)+"/"+getConfigDir()+"/data"));
+           log(4, "updateJDBC H2 done");
            tcatdb.h2db=tcatdb.updateDataSource();
+           log(4, "updateDataSource H2 done");
            tcatdb.h2dbsrv = org.h2.tools.Server.createTcpServer("-tcp","-tcpAllowOthers","-tcpPort", tcatdb.getH2Port(System.getProperty("h2.jdbc")));
+           log(4, "update H2 createTcpServer  done");
            tcatdb.h2dbsrv.start();
            log("INFO: h2db starts :"+tcatdb.h2db);
         } catch(SQLException|NullPointerException io)  {
@@ -95,7 +122,16 @@ class TCatRessources extends TCatVersion {
         }
     }
     
-
+    
+    /*org.apache.catalina.logger.FileLogger getLogger(){
+        org.apache.catalina.logger.FileLogger embeddedFileLogger = new org.apache.catalina.logger.FileLogger();         
+        embeddedFileLogger.setDirectory(_logDir.getFQDNDirName());
+        embeddedFileLogger.setPrefix("TCATlog_");
+        embeddedFileLogger.setSuffix(".txt");
+        embeddedFileLogger.setTimestamp(true);
+        embeddedFileLogger.setVerbosity(3);
+        return 
+    }*/
     
     
     void out(String info) {
@@ -116,26 +152,26 @@ class TCatRessources extends TCatVersion {
                     String[] sp = new String[] { "","","" };
                     Node n = nl.item(i);
                     Node m = ml.item(i);
-                    log(1, "Node =>"+n.getNodeName()+"  and "+m.getNodeName() );
+                    log(3, "Node =>"+n.getNodeName()+"  and "+m.getNodeName() );
                     NodeList nls = n.getChildNodes();
                     NodeList mls = m.getChildNodes();
                     for ( int j=0; j<nls.getLength(); j++ ){
                         log(4, "loop ml["+j+"]");
                         Node ns = nls.item(j);
                         Node ms = mls.item(j);
-                        log(2, "Node Slave ns=>"+ns.getNodeName()+"<=>"+ns.getTextContent()+"<=");
+                        log(3, "Node Slave ns=>"+ns.getNodeName()+"<=>"+ns.getTextContent()+"<=");
                         if      ( ns.getNodeName().equals("servlet-name")  ) { sp[1]=ns.getTextContent(); }
                         else if ( ns.getNodeName().equals("servlet-class") ) { sp[2]=ns.getTextContent(); }
                         
-                        log(2, "Node Slave ms=>"+ms.getNodeName()+"<=>"+ms.getTextContent()+"<=");
+                        log(3, "Node Slave ms=>"+ms.getNodeName()+"<=>"+ms.getTextContent()+"<=");
                         if ( ms.getNodeName().equals("url-pattern")  ) { sp[0]=ms.getTextContent(); }
-                        log(3,"sp set =>"+sp[0]+"<->"+sp[1]+"<->"+sp[2]+"<=");
+                        log(4,"sp set =>"+sp[0]+"<->"+sp[1]+"<->"+sp[2]+"<=");
                     }
-                    log(2,"add sp =>"+sp);
+                    log(3,"add sp =>"+sp);
                     mp.add(sp);
                 }
         }
-        log(2,"return =>"+mp.toString());
+        log(4,"return =>"+mp.toString());
         return mp;
     }
     
@@ -183,6 +219,7 @@ class TCatRessources extends TCatVersion {
                 c.setResponseCharacterEncoding("UTF-8");
                 //c.setSessionTimeout(tc.getS);
                 b=true;
+                registerApplicationLinks(cont,file.getFQDNFileName());
                 if ( nfile != null ) registerAppChanged(nfile,c);
                 final String webxml = file.getFQDNFileName()+ File.separator+"WEB-INF"+File.separator + "web.xml";
                 log(2,"web.xml =>"+webxml);
@@ -197,7 +234,25 @@ class TCatRessources extends TCatVersion {
         return b;
     }
     
-     TCatAppChecker tcapp=null;
+    HashMap<String, ArrayList<String>> applinks=new HashMap<>();
+    void registerApplicationLinks(String cont, String basedir ) {
+         String filters="[$!(\\/WEB-INF\\/)(\\\\.jar$)(\\\\/META-INF\\\\/)(\\\\.swp)(\\\\$)(\\\\/inc\\\\/)]";
+         //String filter=".html$|.htm$|.css$|.js$";
+         String filter="html$|htm$|css$|js$|javascript$|jsp$";
+         ReadDir rd = new ReadDir(basedir);
+         ArrayList<String> ar = new ArrayList<>();        
+         for( String f : rd.getFiles(filter,true) ) {
+            if ( ! f.contains("-INF/") ) { 
+                String[] sp = f.split("/");
+                String s=f.substring(sp[0].length());
+                log(3, cont+" ->"+s+"<-"); 
+                ar.add( s );
+            }
+         }      
+         applinks.put(cont, ar);
+    }
+    
+    TCatAppChecker tcapp=null;
     void registerAppChanged(ReadFile f, Context c){
         if ( tcapp == null ) {
              tcapp = new TCatAppChecker(tcat); 
@@ -242,29 +297,62 @@ class TCatRessources extends TCatVersion {
         } else { return; }*/
     }
     
-    public boolean addResConnection(String file) { return addResConnection(new SecFile(file)); }
+    
+    public String[] getApplicationLinks() {
+        ArrayList<String> ar = new ArrayList<>();
+        for (String k : applinks.keySet()) {
+            ArrayList<String> aar=applinks.get(k);
+            for(String pr: aar){
+                ar.add(k+pr);
+            }    
+        }
+        return (String[]) ar.toArray();
+    }
+    
+    public boolean setConfigDir(String dir) { return setConfigDir( new ReadDir(dir) ); } 
+    public boolean setConfigDir(ReadDir dir) {
+        this._configDir = dir;
+        return dir.isReadable();
+    }
+    
+    public boolean addResConnection(String file) { 
+        if (file.contains(File.separator))         return addResConnection(new SecFile(file)   ); 
+        return addResConnection(new SecFile(_configDir.getAbsolutePath()+File.separator+file ) );
+    }
     public boolean addResConnection(SecFile file) {
         if ( ! file.isReadableFile() ) { return false; }
         if ( file.isCrypted() ) {
-            try { 
-                Properties conf = new Properties();
-                log(1,"load property from  "+file.getFQDNName());
-                    conf.load(new ByteArrayInputStream( file.readOut().toString().getBytes() ) );
-                log(1,"config ->|"+conf+"|<-");
-                int lCount = getInt(config.getProperty("LLISTEN", "0"));
-                if ( lCount < _config.length) {
-                    _config[lCount]=conf;
-                    lCount++;  
-                    config.setProperty("LLISTEN",""+lCount);
-                }     
-                log(1, "pickup LLISTEN after add :"+config.getProperty("LLISTEN", "0")+":");
-            } catch(IOException io){
-                log(1,"ERROR - "+io.getMessage()+" ");
-                return false;
-            }    
+            return addRessourceConnection(file.readOut().toString());
         }
         return true;
     }
+    
+    public boolean addRessourceConnection(String msg) {
+    
+        try { 
+                Properties conf = new Properties();
+                    conf.load(new ByteArrayInputStream( msg.getBytes() ) );
+                log(1,"config ->|"+conf+"|<-");
+                if ( conf.getOrDefault("PROXYAPP", "").equals("")) {
+                    int lCount = getInt(config.getProperty("LLISTEN", "0"));
+                    if ( lCount < _config.length) {
+                        _config[lCount]=conf;
+                        lCount++;  
+                        config.setProperty("LLISTEN",""+lCount);
+                    }     
+                    log(1, "pickup LLISTEN after add :"+config.getProperty("LLISTEN", "0")+":");
+                } else {
+                   proxy.addProxyConf(conf);
+                   //nProxy.addProxyConf(conf);
+                }    
+        } catch(IOException io){
+                log(1,"ERROR - "+io.getMessage()+" ");
+                return false;
+        }    
+    
+        return true;
+    }
+    
     void startExtraConfig() {
         int lCount = getInt(config.getProperty("LLISTEN", "0"));
         for ( int max=0; max<=lCount; max++) {
@@ -278,10 +366,13 @@ class TCatRessources extends TCatVersion {
                     } else {
                           conn = getConnector(conf);
                     } 
+                    log(2, "INFO - add listener"+max+" "+conn);
                     this.tc.setConnector(conn);
-                }    
+                } else {
+                    log(1, "ERROR - missing config port for listener"+max);
+                }   
             }
-        }
+        }        
     }
     
     public void addPublicListen(String[] ar) {
@@ -294,18 +385,33 @@ class TCatRessources extends TCatVersion {
                    prop.setProperty("PUBLIC", "1");
         printf(cl,func,1,"ar.length->"+ar.length+" ->"+ar[2]+"<-");
         if ( ar.length < 3 || ! (  ar[2].equals("https") || ar[2].equals("ssl") || ar[2].equals("tls") ) ) {
-            conn = this.getConnector(prop);
+            //conn = this.getConnector(prop);
         } else {
             if (ar.length > 3 ) { setConnectorAddOne(ar); }
+            prop.setProperty("SECURE", "1");
             prop.setProperty("TRUSTSTORE", getJavaCacerts().getAbsolutePath());
             prop.setProperty("TRUSTSTOREPW", "changeit");
             prop.setProperty("KEYSTORE", ".keyfile.jks");
             prop.setProperty("KEYSTOREPW", getDefaultPass());
-            conn = this.getSslConnector(prop);
+            for ( String kv: ar[3].split(";") ) {
+                printf(cl,func,1,"add ssl connector property :"+kv+":");
+                String sp[] = kv.split("=");
+                final String k = sp[0].toUpperCase(); 
+                final String v = kv.substring(k.length()+1);
+                printf(cl,func,1,"add ssl connector property :"+kv+":  k=|"+k+"| v=|"+v+"|");
+                prop.setProperty(k, v);
+            }
+            //conn = this.getSslConnector(prop);
         }  
         printf(cl,func,1,"add connector to server");
         
-        this.tc.setConnector(conn);
+        // this.tc.setConnector(conn);
+        proxy.addPublic(conn,new String[]{""});
+        /*try { proxy.addPublic(prop); } catch (CloneNotSupportedException|IOException ne){
+            throw new RuntimeException(ne);
+        }*/
+        
+        
         
         printf(cl,func,1,"->"+this.tc.noDefaultWebXmlPath()+"<-");
         
@@ -313,7 +419,8 @@ class TCatRessources extends TCatVersion {
     
     HttpServlet getNewClass(String cname) {
         HttpServlet o = null;
-        try {            
+        try {         
+                    log(1,"create HttpServlet for "+cname);
                     o=(HttpServlet)Class.forName(cname).newInstance();          
         } catch(ClassNotFoundException|NullPointerException|IllegalAccessException|InstantiationException ce){
             printf(cl,"getNewClass",1,"class loadinng Error - "+ce.getMessage());
@@ -321,12 +428,12 @@ class TCatRessources extends TCatVersion {
         return o;
     }
        
-    TCatConnector getConnector(Properties ar) {
+    public TCatConnector getConnector(Properties ar) {
        TCatConnector conn = TCatConnector.getInstance(tcat,ar);     
        return conn;     
     }
     
-    TCatConnector getSslConnector(Properties ar) {
+    public TCatConnector getSslConnector(Properties ar) {
         ar.put("SECURE", "TRUE");
         TCatConnector connector = TCatConnector.getInstance(tcat, "org.apache.coyote.http11.Http11NioProtocol", ar);
         
@@ -384,13 +491,17 @@ class TCatRessources extends TCatVersion {
         return doc;
     }
     
-    String getDefaultPass() {
-        
-        MyVersion m = new MyVersion();
-        
+    String getDefaultPass(  ) {  
+        return getMessageID( "Host:"+super.getHostKey()+": User:"+super.getUserKey()+": Jar:"+m.getLocationMD5() ); 
+    }
+    public String getIntPass() { return  getDefaultPass(); } 
+    public TCatCert getCert()  { return this.cert; }
+    
+    private MyVersion m = new MyVersion();
+    public String getMessageID(String msg) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(  ("Uost:"+super.getHostKey()+": User:"+super.getUserKey()+": Jar:"+m.getLocationMD5() ).getBytes()  );
+            md.update( msg.getBytes()  );
         
             byte[] mdbytes = md.digest();
 
@@ -402,96 +513,12 @@ class TCatRessources extends TCatVersion {
             return sb.toString();
         } catch( java.security.NoSuchAlgorithmException io ) {}
         return m.getLocationMD5();
-        
     }
-    
-    /*private File keyStore=null;
-    private File trustStore=null;
-    File getKeyStore() { 
-        if ( keyStore == null ) {
-            setKeyStore(null);
-        }
-        ReadFile fn = new ReadFile(keyStore);
-        if ( ! fn.isReadableFile() ){ 
-            createKeyStore(fn,getKeyStorePassword(fn.getFile()));
-        }
-        return keyStore;
+    public String getMessageID() {
+       String ml=getMessageID( com.macmario.io.crypt.GetPassword.getEasyPassword() );
+       int len=(ml.length()>6)?6:ml.length()-1;
+       return ml.substring(0, len);
     }
-    File getTrustStore() { 
-        if ( trustStore == null ) {
-            setTrustStore(null);
-        }
-        ReadFile fn = new ReadFile(trustStore);
-        if ( ! fn.isReadableFile() ){ 
-            //createKeyStore(fn,getKeyStorePassword(fn.getFile()));
-        }
-        return trustStore; 
-    }
-    void setKeyStore(String file){
-        ReadFile fn;
-        if ( file != null ) { 
-            fn = new ReadFile(file); 
-            if ( fn.isReadableFile() ) { keyStore=fn.getFile(); }
-        } 
-        if( keyStore == null ) {
-            keyStore=getDefaultKeyStore();
-            fn = new ReadFile(keyStore);
-        }
-    }
-    private SecFile secKeyStoreFile=null;
-    private SecFile secTrustStoreFile=null;
-    String getKeyStorePassword(File keys) {
-        if ( secKeyStoreFile != null ) {
-            return secKeyStoreFile.readOut().toString();
-        }
-        File ks = getDefaultKeyStore();
-        if ( ks.getAbsolutePath().equals(keys.getAbsolutePath()) ) {
-            return this.getDefaultPass();
-        } else {
-             SecFile sn = new SecFile( keys.getAbsolutePath().replaceAll(".jks$", "")+".pw");
-             if ( sn.isReadableFile() ) { return sn.readOut().toString(); }
-        }
-        return "changit";
-    }
-    String getTrustStorePassword(File keys) {
-        if ( secTrustStoreFile != null ) {
-            return secTrustStoreFile.readOut().toString();
-        }
-        File ks = getDefaultTrustStore();
-        if ( ks.getAbsolutePath().equals(keys.getAbsolutePath()) ) {
-            return this.getDefaultPass();
-        }else {
-             SecFile sn = new SecFile( keys.getAbsolutePath().replaceAll(".jks$", "")+".pw");
-             if ( sn.isReadableFile() ) { return sn.readOut().toString(); }
-        }
-        return "changit";
-    }
-    File getDefaultKeyStore()   { return new File( getTempDir()+File.separator+".keystore.jks"); }
-    File getDefaultTrustStore() { return getJavaCacerts(); }
-    
-    void setTrustStore(String file){
-        if ( file != null ) {
-            ReadFile fn = new ReadFile(file); 
-            if ( fn.isReadableFile() ) { trustStore=fn.getFile(); }
-            
-        } else {
-            trustStore=getJavaCacerts();
-        }
-    }
-    
-    void setKeyStorePass(String file) {
-        if ( file != null && ! file.isEmpty() ) {
-            SecFile sn = new SecFile(file);
-            if ( sn.isReadableFile() ) { this.secKeyStoreFile=sn; }
-        }
-    }
-    
-    void setTrustStorePass(String file) {
-        if ( file != null && ! file.isEmpty() ) {
-            SecFile sn = new SecFile(file);
-            if ( sn.isReadableFile() ) { this.secTrustStoreFile=sn; }
-        }
-    }*/
     
     void setConnectorAddOne(String[] ar) {
         if ( ar != null ) {
@@ -532,6 +559,8 @@ class TCatRessources extends TCatVersion {
     }
     
     String getHostname() { return com.macmario.net.tcp.TcpHost.getHostname(); }
+    
+    public TrustManager[] getTrustManager(KeyStore store) { return cert.getTrustManager(store); }
     
     public void log(int deb, String msg){ super.log(deb, "TCATRessource::"+msg); }
 }

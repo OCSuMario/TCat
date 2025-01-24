@@ -45,12 +45,15 @@ public class TCatUser extends org.apache.catalina.users.AbstractUser {
 
     @Override
     public void addGroup(Group group) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        
     }
 
     @Override
-    public void addRole(Role role) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    public void addRole(Role role) {       
+        if ( db.findRole(role.getRolename()) != null ) {
+            db.createRole(role.getRolename(), role.getDescription());
+        }
+        // open addRole to User 
     }
 
     @Override

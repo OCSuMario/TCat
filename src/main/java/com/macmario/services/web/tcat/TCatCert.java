@@ -8,10 +8,12 @@ import static com.macmario.general.Version.getJavaCacerts;
 import com.macmario.io.crypt.Base64;
 import com.macmario.io.file.ReadFile;
 import com.macmario.io.file.SecFile;
+import com.macmario.io.file.WriteFile;
 import static com.macmario.net.tcp.TcpHost.getHostname;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.cert.X509Certificate;
@@ -26,11 +28,14 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.Date;
+import javax.net.ssl.TrustManager;
+import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.KeyUsage;
@@ -40,15 +45,20 @@ import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.util.io.pem.PemReader;
+
 
 
 /**
  *
- * @author MNO
+ * @author SuMario
  */
-class TCatCert extends TCatVersion {
+public class TCatCert extends TCatVersion {
 
     private String alg;
     private int keyLength;
@@ -62,8 +72,8 @@ class TCatCert extends TCatVersion {
     private String alias;
     private String storeAlg="PKCS12";
     
-   TCatCert(TCat tc                                         ) { this(tc,"DSA",2048,"SHA256withDSA"); }
-   TCatCert(TCat tc, String alg, int kLength,String signAlg ) { this.tcat=tc; init(alg,kLength,signAlg); } 
+   TCatCert(TCat tc                                         ) { this(tc,"RSA",4096,"SHA256withRSA"); }
+   TCatCert(TCat tc, String alg, int kLength,String signAlg ) { this.tcat=tc; initLogger(); init(alg,kLength,signAlg); } 
    
    private void init(String alg, int kLength,String signAlg) {
       final String func="TCatCert::init()";
@@ -82,7 +92,7 @@ class TCatCert extends TCatVersion {
         this.sign = Signature.getInstance(signAlg);
         this.sign.initSign(getPrivateKey());
         
-        this.ca = getSelfSignCert("CN="+getHostname(),365,"SHA256withDSA" );
+        this.ca = getSelfSignCert("CN="+getHostname(),365,"SHA256withRSA" );
         log(1, "CA encoded:\n"+getEncoded(this.ca, "-----BEGIN CERTIFICATE-----","-----END CERTIFICATE-----"));
         log(1, "Public  encoded:\n"+getEncoded(this.ca.getPublicKey(), "-----BEGIN PUBLIC KEY-----","-----END PUBLIC KEY-----"));
         log(1, "Private encoded:\n"+getEncoded(this.pair.getPrivate(), "-----BEGIN PRIVATE KEY-----","-----END PRIVATE KEY-----"));
@@ -107,8 +117,8 @@ class TCatCert extends TCatVersion {
    Certificate getRootCA()    { return ca; }
    Certificate[] getChain()   { return new Certificate[] { getRootCA() }; }
    String getRootPemCertificate(){ return getEncoded(this.ca, "-----BEGIN CERTIFICATE-----","-----END CERTIFICATE-----"); }
-   String getRootPemPublicKey()  { return getEncoded(this.ca.getPublicKey(), "-----BEGIN DSA PUBLIC KEY-----","-----END DSA PUBLIC KEY-----");}
-   String getRootPemPrivateKey() { return getEncoded(this.pair.getPrivate(), "-----BEGIN DSA PRIVATE KEY-----","-----END DSA PRIVATE KEY-----");}
+   String getRootPemPublicKey()  { return getEncoded(this.ca.getPublicKey(), "-----BEGIN RSA PUBLIC KEY-----","-----END RSA PUBLIC KEY-----");}
+   String getRootPemPrivateKey() { return getEncoded(this.pair.getPrivate(), "-----BEGIN RSA PRIVATE KEY-----","-----END RSA PRIVATE KEY-----");}
    private String getEncoded(Object o, String begin, String end){
        StringBuilder sw=new StringBuilder();
        log(1, "Encode object "+o);
@@ -152,6 +162,13 @@ class TCatCert extends TCatVersion {
        return ""; 
    }
    
+   X509Certificate[] getSignCert(String dn, long ticks, String alg){
+       X509Certificate[] ma = new X509Certificate[2];
+                         ma[0] = getSignCert(dn,ca.toString(),ticks,alg);
+                         ma[1] = (X509Certificate)ca;
+       return ma;
+   }
+   
    X509Certificate getSelfSignCert(String dn, long ticks, String alg){
        return getSignCert(dn,dn,ticks,alg);
    }
@@ -191,6 +208,60 @@ class TCatCert extends TCatVersion {
        return getSelfSignCert(dn,d,alg);
    } 
    
+   
+    KeyPair getKeyPair() { return getKeyPair("RSA", 4096); }
+    KeyPair getKeyPair(String typ, int len) {
+        try {
+            len=(len>=3072)?len:4096;
+            typ=( isNullOrEmpty(typ) )?"RSA":typ;
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance(typ);
+            keyGen.initialize(len);
+            return keyGen.generateKeyPair();
+        } catch (java.security.NoSuchAlgorithmException|NullPointerException ne) {
+        }
+        return null;
+    }
+    PrivateKey getPrivateKey(KeyPair key) { return key.getPrivate();}
+    PublicKey  getPublicKey( KeyPair key) { return key.getPublic(); }
+    
+    private String sigAlgorithm="SHA256withRSA";
+    PKCS10CertificationRequest getSingingRequest(String dn, KeyPair pair){
+        PKCS10CertificationRequest csr=null;
+        try {
+            X500Name princ = new X500Name(dn);
+            JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(this.sigAlgorithm);
+            ContentSigner sig  = csBuilder.build(getPrivateKey(pair));
+            PKCS10CertificationRequestBuilder builder = 
+                    new PKCS10CertificationRequestBuilder(princ, getSubKeyInfo(getPublicKey(pair)) );
+            csr = builder.build(sig);
+        
+        } catch( org.bouncycastle.operator.OperatorCreationException|NullPointerException oe ){}
+        return csr;
+    }
+    
+    private SubjectPublicKeyInfo getSubKeyInfo(PublicKey key) {
+        return SubjectPublicKeyInfo.getInstance( ASN1Sequence.getInstance(key.getEncoded()));
+    }
+    
+    PKCS10CertificationRequest loadCSR(String file) { 
+        try { 
+            return loadCSR(new FileReader(file));
+        }catch(java.io.FileNotFoundException|NullPointerException ne) {}
+        return null;
+    }
+    PKCS10CertificationRequest loadCSR(FileReader file) {
+        PKCS10CertificationRequest csr = null;
+        try {
+             PemReader pr = new PemReader(file);
+             csr = new PKCS10CertificationRequest(pr.readPemObject().getContent()) ;
+        } catch(java.io.IOException io) {}
+        return csr;
+    }
+    
+    void getCertSigned(PKCS10CertificationRequest csr) {
+        
+    }
+   
    public KeyStore openTrustStore(String file, String pass) { return openTrustStore(new File(file),pass); }
    public KeyStore openTrustStore(File file, String pass) {
        KeyStore kst = openKeystore(file, pass);
@@ -199,24 +270,41 @@ class TCatCert extends TCatVersion {
            try { 
                 kst.load(new FileInputStream(def), this.getDefaultTrustStorePass().toCharArray());
                 
-                kst.setCertificateEntry(alias, ca);
-           } catch(IOException|NoSuchAlgorithmException|CertificateException|KeyStoreException|NullPointerException ne){
+         
+           } catch(IOException|NoSuchAlgorithmException|CertificateException|NullPointerException ne){
                log(1,"ERROR:"+ne.getMessage()+" - openTrustStore");
            }       
        } 
+       try { kst.setCertificateEntry(alias, ca);}
+       catch (KeyStoreException|NullPointerException ne){
+           log(1,"could not add myown Server CA - ERROR:"+ne.getMessage()+" - openTrustStore");
+       }
        return kst;
    }
    
+   private boolean isDefaultKeyStoreLoaded=false;
+   private boolean isDefaultTrustStoreLoaded=false;
    public void updateKeyStoreWithDefault(KeyStore ks, File keystore, String KeysPW) {
+       debug=4;
+       log(4, "updateKeyStoreWithDefault - ks:"+((ks==null)?"NULL":keystore.getAbsolutePath()) );
        ks=( ks == null )? openKeystore(keystore,KeysPW ):ks ;
        try {
             if ( ks.size() == 0 ) {
-                ks.setKeyEntry(getDefaultAlias(), this.getPrivateKey(), KeysPW.toCharArray() ,getChain());
+                ks.setKeyEntry(getDefaultAlias(), this.getPrivateKey(), KeysPW.toCharArray(), getChain());                
+                log(3, "added private key to keystore "
+                        +(ks.getKey(getDefaultAlias(), KeysPW.toCharArray())) );
                 ks.store(new FileOutputStream(keystore), KeysPW.toCharArray());
             } 
-       } catch ( KeyStoreException|IOException|NoSuchAlgorithmException|CertificateException|NullPointerException ne){
+       } catch (  KeyStoreException|IOException|NoSuchAlgorithmException
+                 |CertificateException|NullPointerException|UnrecoverableKeyException ne){
            log(1,"ERROR:"+ne.getMessage()+" - openKeystore fail");
+           if (! isDefaultKeyStoreLoaded){
+                log(1,"INFO: remove default keystore and try again");
+                (new WriteFile(keystore)).delete();                     
+                updateKeyStoreWithDefault(ks, keystore, KeysPW);
+           }      
        }
+       isDefaultKeyStoreLoaded=true;
    }
    public KeyStore openKeystore(String file, String pass) { return openKeystore(new File(file),pass); }
    public KeyStore openKeystore(File file, String pw) {
@@ -224,6 +312,8 @@ class TCatCert extends TCatVersion {
        pw=(pw == null || pw.isEmpty() )? "changeit":pw;
        KeyStore kst = null;
        log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  =>|"+pw+"|<=");
+       boolean failed=false;
+       boolean defaults=false;
        try {
             kst = KeyStore.getInstance(this.getStoreAlg());
        
@@ -232,15 +322,20 @@ class TCatCert extends TCatVersion {
                 kst.load(new FileInputStream(file), pw.toCharArray());
                 log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  loaded");
             } else {
+                defaults=true;
                 log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  empty - create ");
                 kst.load(null,null);
                 updateKeyStoreWithDefault(kst,file, pw);
-                kst.store(new FileOutputStream(file), pw.toCharArray());
                 log(1,"INFO: Keystore:"+file.getAbsolutePath()+":  created");
             }
        } catch(KeyStoreException|IOException|NoSuchAlgorithmException|CertificateException|NullPointerException ne){
            log(1,"ERROR:"+ne.getMessage()+" - openKeystore fail");
-       }     
+           failed=true;
+       } 
+       if ( failed && ! defaults ) {
+           (new WriteFile(file)).delete();
+           kst=openKeystore(file, pw);
+       }
        return kst;
    }
    
@@ -255,6 +350,10 @@ class TCatCert extends TCatVersion {
         }
         return null;
     }
+    public Certificate getCertificate(String alias){
+        return getCertificate(getKeyStore(),this.getKeyStorePassword(keyStore),alias);
+    }
+    public Certificate getCertificate(){ return getCertificate(this.getDefaultAlias()); }
  
     private File keyStore=null;
     private File trustStore=null;
@@ -317,9 +416,9 @@ class TCatCert extends TCatVersion {
         }
         return "changit";
     }
-    File   getDefaultKeyStore()   { return new File( getTempDir()+File.separator+".keystore.jks"); }
-    File   getDefaultTrustStore() { return getJavaCacerts(); }
-    String getDefaultTrustStorePass() { return "changeit"; }
+    public File   getDefaultKeyStore()   { return new File( getConfigDir()+File.separator+"keystore.jks"); }
+    public File   getDefaultTrustStore() { return getJavaCacerts(); }
+    public String getDefaultTrustStorePass() { return "changeit"; }
     
     void setTrustStore(String file){
         if ( file != null ) {
@@ -374,5 +473,9 @@ class TCatCert extends TCatVersion {
         }
     }
     
-   public void log(int deb, String msg){ super.log(deb, "TCATCert::"+msg); }
+    public TrustManager[] getTrustManager(KeyStore store) {
+        return TCatTrustManager.getInstance(tcat,store);
+    }    
+    
+    public void log(int deb, String msg){ tcat.log(deb, "TCATCert::"+msg); }
 }

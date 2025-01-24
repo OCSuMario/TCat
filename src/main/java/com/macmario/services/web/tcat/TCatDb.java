@@ -25,10 +25,11 @@ public class TCatDb extends TCatVersion {
         this.jurl=( jdbc != null )?jdbc:null;
         if ( this.jurl == null || this.jurl.isEmpty() ) {
             log(1, "use defaults for h2.jdbc");
-            this.jurl=("jdbc:h2:tcp://sa:"+tcat.getDefaultPass()+"@"+System.getProperty("h2.bindAddress")+":"+(tcat.tc.getConnector().getPort()+1)+"/"+tcat.getWorkingDir()+"/data");
+            this.jurl=("jdbc:h2:tcp://sa:"+tcat.getDefaultPass()+"@"+System.getProperty("h2.bindAddress")+":"+(tcat.tc.getConnector().getPort()+1)+"/"+tcat.getConfigDir()+"/data");
         }
     }
-    
+   
+   private boolean isUpdateDBReCall=false;
    org.h2.jdbcx.JdbcDataSource updateDataSource(){
         org.h2.jdbcx.JdbcDataSource ds = new org.h2.jdbcx.JdbcDataSource();
         //final String jurl=System.getProperty("h2.jdbc");
@@ -37,8 +38,16 @@ public class TCatDb extends TCatVersion {
         ds.setUser( getH2User(jurl));
         ds.setPassword( getH2Pass(jurl));
         try {
-            Connection conn = ds.getConnection();
-                       conn.close();
+           try { 
+                Connection conn = ds.getConnection();
+                           conn.close();
+           } catch(org.h2.jdbc.JdbcSQLInvalidAuthorizationSpecException ne){
+               if ( ! isUpdateDBReCall ) {
+                      System.out.println("DB:"+getH2DB(jurl).substring("jdbc:h2:file:".length()));
+                      isUpdateDBReCall=true;
+                      return updateDataSource();
+               }
+           }            
         } catch(SQLException se) {
             log(1, "SQL Error - "+se.getMessage()+" jdbc:"+this.jurl);
             se.printStackTrace();
